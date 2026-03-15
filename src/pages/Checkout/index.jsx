@@ -1,145 +1,239 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast'; // 1. Importamos los Toasts
+import toast from 'react-hot-toast';
+import { 
+  CreditCard, 
+  Smartphone, 
+  Lock, 
+  ShieldCheck, 
+  ArrowLeft,
+  Building2,
+  CheckCircle2
+} from 'lucide-react';
 
 export default function Checkout() {
   const [metodoPago, setMetodoPago] = useState('pago_movil');
-  const [isProcessing, setIsProcessing] = useState(false); // Estado para bloquear el botón mientras "carga"
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [referencia, setReferencia] = useState(''); 
   const navigate = useNavigate();
 
-  const handlePayment = (e) => {
+  const handlePayment = async (e) => {
     e.preventDefault();
-    
-    // Bloqueamos el botón para que el usuario no le dé doble clic
+    const comercioId = localStorage.getItem('comercioId');
+
+    if (!comercioId) {
+      toast.error('Error: No se detectó una tienda activa.');
+      return;
+    }
+
     setIsProcessing(true);
+    const toastId = toast.loading('Procesando pago de forma segura...');
 
-    // Lanzamos un Toast de "Cargando"
-    const toastId = toast.loading('Conectando con el banco y procesando pago...');
+    try {
+      const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/pagos/procesar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comercioId: comercioId,
+          monto: 20.00,
+          moneda: 'USD',
+          metodo: metodoPago,
+          referencia: referencia
+        })
+      });
 
-    // Simulamos que el backend tarda 2.5 segundos en responder
-    setTimeout(() => {
-      // Cambiamos el Toast de "Cargando" a "Éxito"
-      toast.success('¡Pago procesado exitosamente!', { id: toastId });
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || 'El pago fue rechazado por el banco.', { id: toastId });
+        setIsProcessing(false);
+        return;
+      }
+
+      toast.success('¡Pago procesado y aprobado exitosamente!', { id: toastId });
       
-      // Desbloqueamos el botón
-      setIsProcessing(false);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
 
-      // (Opcional) Limpiar formulario o regresar al inicio después del pago
-      // navigate('/dashboard'); 
-    }, 2500);
+    } catch (error) {
+      console.error(error);
+      toast.error('Error de conexión con el servidor bancario.', { id: toastId });
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans selection:bg-blue-100">
       
-      <div className="max-w-4xl w-full mx-auto mb-4 px-4 sm:px-0">
+      {/* Botón de Volver */}
+      <div className="max-w-5xl w-full mx-auto mb-6 px-4 sm:px-0">
         <button 
           onClick={() => navigate('/dashboard')} 
-          className="text-sm font-medium text-gray-500 hover:text-gray-800 flex items-center gap-2 transition-colors"
+          className="group flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
         >
-          ← Volver al Panel de Control (Demo)
+          <div className="p-2 bg-white rounded-full shadow-sm border border-slate-200 group-hover:shadow-md transition-all">
+            <ArrowLeft size={16} />
+          </div>
+          Volver al Panel (Demo)
         </button>
       </div>
 
-      <div className="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100">
+      {/* CONTENEDOR PRINCIPAL */}
+      <div className="max-w-5xl w-full mx-auto bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 overflow-hidden flex flex-col md:flex-row border border-slate-100/80">
         
-        {/* Columna Izquierda: Resumen de la compra */}
-        <div className="md:w-1/3 bg-gray-900 text-white p-8 flex flex-col justify-between">
-          <div>
-            <p className="text-gray-400 text-sm font-medium mb-1">Estás pagando en</p>
-            <h2 className="text-2xl font-bold mb-6">Zahara Store</h2>
-            
-            <div className="space-y-4 text-sm">
-              <div className="flex justify-between border-b border-gray-700 pb-2">
-                <span className="text-gray-300">Franela Oversize (Negra)</span>
-                <span>$ 15.00</span>
+        {/* COLUMNA IZQUIERDA: Resumen Elegante (Dark Mode) */}
+        <div className="md:w-[40%] bg-slate-900 text-white p-10 flex flex-col justify-between relative overflow-hidden">
+          {/* Círculos decorativos de fondo */}
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded-full bg-indigo-500/10 blur-3xl"></div>
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 text-slate-400 text-sm font-semibold mb-3">
+              <Building2 size={16} /> Estás pagando en
+            </div>
+            <h2 className="text-3xl font-extrabold mb-8 tracking-tight text-white flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/10">
+                {(localStorage.getItem('comercioNombre') || 'Z').charAt(0)}
               </div>
-              <div className="flex justify-between border-b border-gray-700 pb-2">
-                <span className="text-gray-300">Envío Nacional</span>
-                <span>$ 5.00</span>
+              {localStorage.getItem('comercioNombre') || 'Zahara Store'}
+            </h2>
+            
+            <div className="space-y-5 text-sm">
+              <div className="flex justify-between items-center border-b border-slate-700/50 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-slate-800 rounded-lg border border-slate-700 flex items-center justify-center">👕</div>
+                  <span className="text-slate-300 font-medium">Franela Oversize (Negra)</span>
+                </div>
+                <span className="font-semibold text-white">$ 15.00</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-700/50 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-slate-800 rounded-lg border border-slate-700 flex items-center justify-center">📦</div>
+                  <span className="text-slate-300 font-medium">Envío Nacional</span>
+                </div>
+                <span className="font-semibold text-white">$ 5.00</span>
               </div>
             </div>
           </div>
           
-          <div className="mt-8 pt-4 border-t border-gray-700">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-gray-300">Total a pagar</span>
-              <span className="text-2xl font-bold">$ 20.00</span>
+          <div className="mt-12 pt-6 border-t border-slate-700/50 relative z-10">
+            <div className="flex justify-between items-end mb-1">
+              <span className="text-slate-400 font-medium">Total a pagar</span>
+              <span className="text-4xl font-extrabold text-white tracking-tight">$ 20.00</span>
             </div>
-            <p className="text-right text-xs text-gray-400">Aprox. Bs. 720,00</p>
+            <p className="text-right text-sm text-slate-400 font-medium mt-2">Aprox. Bs. 720,00</p>
           </div>
         </div>
 
-        {/* Columna Derecha: Formulario de Pago */}
-        <div className="md:w-2/3 p-8">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">Selecciona tu método de pago</h3>
+        {/* COLUMNA DERECHA: Formulario de Pago */}
+        <div className="md:w-[60%] p-10 lg:p-12 bg-white">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">Método de pago</h3>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+              <Lock size={12} /> Pago 100% Seguro
+            </div>
+          </div>
           
-          <div className="flex space-x-4 mb-8">
+          {/* Selector de Método (Tabs modernas) */}
+          <div className="flex space-x-3 mb-8 p-1.5 bg-slate-50 rounded-2xl border border-slate-100">
             <button 
               type="button"
               onClick={() => setMetodoPago('pago_movil')}
-              className={`flex-1 py-3 border-2 rounded-xl font-medium transition-all ${metodoPago === 'pago_movil' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+              className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 ${metodoPago === 'pago_movil' ? 'bg-white text-blue-700 shadow-sm border border-slate-200/60' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/50'}`}
             >
+              <Smartphone size={18} className={metodoPago === 'pago_movil' ? 'text-blue-600' : 'text-slate-400'} />
               Pago Móvil
             </button>
             <button 
               type="button"
               onClick={() => setMetodoPago('tarjeta')}
-              className={`flex-1 py-3 border-2 rounded-xl font-medium transition-all ${metodoPago === 'tarjeta' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
+              className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 ${metodoPago === 'tarjeta' ? 'bg-white text-blue-700 shadow-sm border border-slate-200/60' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100/50'}`}
             >
+              <CreditCard size={18} className={metodoPago === 'tarjeta' ? 'text-blue-600' : 'text-slate-400'} />
               Tarjeta
             </button>
           </div>
 
-          <form className="space-y-5" onSubmit={handlePayment}>
+          <form className="space-y-6" onSubmit={handlePayment}>
             
             {metodoPago === 'pago_movil' ? (
-              <div className="space-y-4 animate-fade-in">
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4 text-sm text-gray-600">
-                  <p>Realiza el pago a los siguientes datos:</p>
-                  <p className="font-mono mt-1 text-gray-800">Banco: <strong>0102 (BDV)</strong></p>
-                  <p className="font-mono text-gray-800">Cédula: <strong>V-12345678</strong></p>
-                  <p className="font-mono text-gray-800">Teléfono: <strong>0412-0000000</strong></p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Banco de Origen</label>
-                  <select required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white">
-                    <option value="">Selecciona un banco...</option>
-                    <option>Banco de Venezuela (0102)</option>
-                    <option>Banesco (0134)</option>
-                    <option>Mercantil (0105)</option>
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono Origen</label>
-                    <input required type="text" placeholder="0412..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+              <div className="space-y-5 animate-fade-in">
+                
+                {/* Caja de instrucciones de pago móvil */}
+                <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
+                  <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <CheckCircle2 size={16} className="text-blue-600" />
+                    Datos para transferir
+                  </p>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-blue-600/70 text-xs font-semibold mb-0.5">Banco</p>
+                      <p className="font-extrabold text-blue-900">0102 (BDV)</p>
+                    </div>
+                    <div>
+                      <p className="text-blue-600/70 text-xs font-semibold mb-0.5">Cédula</p>
+                      <p className="font-extrabold text-blue-900">V-12345678</p>
+                    </div>
+                    <div>
+                      <p className="text-blue-600/70 text-xs font-semibold mb-0.5">Teléfono</p>
+                      <p className="font-extrabold text-blue-900">0412-0000000</p>
+                    </div>
                   </div>
+                </div>
+
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">N° de Referencia (Últimos 6)</label>
-                    <input required type="text" placeholder="Ej. 847261" maxLength="6" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Banco de Origen</label>
+                    <select required className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none">
+                      <option value="">Selecciona tu banco...</option>
+                      <option>Banco de Venezuela (0102)</option>
+                      <option>Banesco (0134)</option>
+                      <option>Mercantil (0105)</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">Teléfono Origen</label>
+                      <input required type="text" placeholder="0412..." className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-2">N° Referencia</label>
+                      <input 
+                        required 
+                        type="text" 
+                        placeholder="Ej. 847261" 
+                        maxLength="6"
+                        value={referencia}
+                        onChange={(e) => setReferencia(e.target.value)}
+                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none" 
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="space-y-4 animate-fade-in">
+              <div className="space-y-5 animate-fade-in">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Número de Tarjeta</label>
-                  <input required type="text" placeholder="0000 0000 0000 0000" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Expiración</label>
-                    <input required type="text" placeholder="MM/AA" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Código de Seguridad (CVV)</label>
-                    <input required type="text" placeholder="123" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Número de Tarjeta</label>
+                  <div className="relative">
+                    <input required type="text" placeholder="0000 0000 0000 0000" className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none" />
+                    <CreditCard size={20} className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Expiración</label>
+                    <input required type="text" placeholder="MM/AA" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-2">CVV</label>
+                    <input required type="text" placeholder="123" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none" />
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre en la tarjeta</label>
-                  <input required type="text" placeholder="Alejandro Navas" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" />
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Nombre del Titular</label>
+                  <input required type="text" placeholder="Como aparece en la tarjeta" className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all outline-none" />
                 </div>
               </div>
             )}
@@ -147,14 +241,24 @@ export default function Checkout() {
             <button 
               type="submit" 
               disabled={isProcessing}
-              className={`w-full mt-6 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg ${isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 hover:bg-gray-800 shadow-gray-900/20'}`}
+              className={`w-full mt-8 flex items-center justify-center gap-2 text-white font-bold py-4 px-4 rounded-xl transition-all duration-300 shadow-lg ${isProcessing ? 'bg-slate-400 cursor-not-allowed shadow-none' : 'bg-blue-600 hover:bg-blue-700 hover:-translate-y-0.5 shadow-blue-600/30'}`}
             >
-              {isProcessing ? 'Procesando...' : 'Confirmar y Pagar'}
+              {isProcessing ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Procesando...
+                </span>
+              ) : (
+                <>
+                  <Lock size={18} />
+                  Pagar $20.00
+                </>
+              )}
             </button>
 
-            <div className="text-center mt-4 flex items-center justify-center text-xs text-gray-400 font-medium">
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-              Pagos procesados de forma segura por ZaharaPay
+            <div className="text-center mt-6 flex items-center justify-center gap-1.5 text-xs text-slate-400 font-semibold">
+              <ShieldCheck size={16} className="text-slate-400" />
+              Tus datos están protegidos por encriptación de 256-bits.
             </div>
           </form>
 

@@ -1,38 +1,77 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast'; // 1. Importamos la función para lanzar alertas
+import toast from 'react-hot-toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  // Estado para bloquear el botón mientras el backend piensa
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { // La función ahora es asíncrona
     e.preventDefault();
 
-    // --- VALIDACIONES PROFESIONALES ---
-    
-    // 1. Validar que no haya campos vacíos
+    // 1. Validaciones básicas del frontend
     if (!email || !password) {
       toast.error('Por favor, completa todos los campos.');
-      return; // El return detiene la función para que no navegue
+      return;
     }
 
-    // 2. Validar longitud de la contraseña
     if (password.length < 6) {
       toast.error('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
 
-    // 3. Validar un formato de correo básico
     if (!email.includes('@') || !email.includes('.')) {
       toast.error('Por favor, ingresa un correo electrónico válido.');
       return;
     }
 
-    // Si pasa todas las validaciones, mostramos el éxito y lo dejamos entrar
-    toast.success('¡Bienvenido de vuelta a ZaharaPay!');
-    navigate('/dashboard');
+    // 2. Conexión real con tu Backend
+    setIsLoggingIn(true);
+    const toastId = toast.loading('Verificando credenciales...');
+
+    try {
+      // Hacemos la petición POST a la ruta de login de tu API
+      const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        })
+      });
+
+      const data = await response.json();
+
+      // Si el servidor nos devuelve un error (ej. contraseña incorrecta)
+      if (!response.ok) {
+        toast.error(data.error || 'Error al iniciar sesión', { id: toastId });
+        setIsLoggingIn(false);
+        return;
+      }
+
+      // Si las credenciales son correctas, el backend nos da luz verde
+      toast.success(`¡Bienvenido de vuelta, ${data.comercio.nombre}!`, { id: toastId });
+      
+      // Opcional por ahora, pero vital a futuro: Guardar el ID del comercio en el navegador
+      localStorage.setItem('comercioId', data.comercio.id);
+      localStorage.setItem('comercioNombre', data.comercio.nombre);
+      localStorage.setItem('token', data.token);
+
+      navigate('/dashboard');
+
+    } catch (error) {
+      console.error(error);
+      toast.error('Error de conexión con el servidor. Verifica que esté encendido.', { id: toastId });
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   return (
@@ -41,14 +80,13 @@ export default function Login() {
         
         <div>
           <h2 className="text-center text-3xl font-extrabold text-gray-900">
-            Zahara<span className="text-blue-600">Pay</span>
+            Lumi<span className="text-blue-600">na</span>
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Inicia sesión para gestionar tus cobros
           </p>
         </div>
 
-        {/* fíjate que le quitamos el "required" nativo del HTML a los inputs para que nuestra validación de React haga el trabajo */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
@@ -87,16 +125,17 @@ export default function Login() {
           <div>
             <button
               type="submit"
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+              disabled={isLoggingIn}
+              className={`w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white transition-colors ${isLoggingIn ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
-              Entrar al Panel
+              {isLoggingIn ? 'Entrando...' : 'Entrar al Panel'}
             </button>
           </div>
         </form>
         
         <div className="mt-6 text-center border-t border-gray-100 pt-6">
           <p className="text-sm text-gray-600">
-            ¿Tu tienda aún no usa ZaharaPay?{' '}
+            ¿Tu tienda aún no usa Lumina?{' '}
             <button 
               type="button"
               onClick={() => navigate('/registro')}

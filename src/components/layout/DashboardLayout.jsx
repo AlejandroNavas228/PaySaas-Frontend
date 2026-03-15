@@ -1,59 +1,296 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react'; 
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { LayoutDashboard, Receipt, Settings, LogOut, ExternalLink, Bell, Search, User } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // ESTADOS DEL MENÚ
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isNotifMenuOpen, setIsNotifMenuOpen] = useState(false);
+  const [notificaciones, setNotificaciones] = useState([]);
+
+  // ---> LÓGICA DE BÚSQUEDA <---
+  const [searchParams, setSearchParams] = useSearchParams();
+  const terminoBusqueda = searchParams.get('buscar') || '';
+
+  const handleBuscar = (e) => {
+    const texto = e.target.value;
+    if (location.pathname !== '/dashboard') {
+      navigate(`/dashboard?buscar=${texto}`);
+    } else {
+      if (texto) {
+        setSearchParams({ buscar: texto });
+      } else {
+        setSearchParams({}); 
+      }
+    }
+  };
+
+  // ---> LÓGICA DE NOTIFICACIONES REALES <---
+  // ---> LÓGICA DE NOTIFICACIONES REALES <---
+  useEffect(() => {
+    const cargarNotificaciones = async () => {
+      const comercioId = localStorage.getItem('comercioId');
+      const token = localStorage.getItem('token'); // <--- Buscamos el token
+
+      if (comercioId && token) {
+        try {
+          // Enviamos la petición con su llave de acceso
+          const response = await fetch(`https://lumina-backend-3pu1.onrender.com/api/pagos/${comercioId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setNotificaciones(data.slice(0, 3)); // Solo las 3 más recientes
+          }
+        } catch (error) { 
+          console.error(error); 
+        }
+      }
+    };
+    cargarNotificaciones();
+  }, [location.pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('comercioId');
+    localStorage.removeItem('comercioNombre');
+    localStorage.removeItem('token');
+    
+    toast.success('Sesión cerrada correctamente');
+    navigate('/login');
+  };
+
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans">
+    <div className="flex h-screen bg-[#F8FAFC] font-sans overflow-hidden">
       
-      {/* Sidebar Lateral */}
-      <aside className="w-64 bg-gray-900 text-white flex flex-col">
-        <div className="flex items-center justify-center h-16 border-b border-gray-800">
-          <h1 className="text-xl font-bold tracking-wider">
-            Zahara<span className="text-blue-500">Pay</span>
+      {/* SIDEBAR LATERAL (Moderna y Oscura) */}
+      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 shadow-2xl z-20">
+        
+        {/* Logo de Lumina */}
+        <div className="flex items-center justify-center h-20 border-b border-slate-800/50">
+          <h1 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
+              <span className="text-white text-lg">L</span>
+            </div>
+            Lumi<span className="text-blue-600">na</span>
           </h1>
         </div>
         
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          <a href="#" className="block px-4 py-2 bg-blue-600 text-white rounded-lg">Dashboard</a>
-          <a href="#" className="block px-4 py-2 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">Transacciones</a>
-          <a href="#" className="block px-4 py-2 text-gray-400 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">Configuración</a>
+        {/* Navegación principal */}
+        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+          <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Menú Principal</p>
           
           <button 
-            onClick={() => navigate('/checkout')} /* Navega al Checkout */
-            className="w-full text-left mt-4 block px-4 py-2 text-blue-400 hover:bg-gray-800 hover:text-blue-300 rounded-lg transition-colors border border-gray-800"
+            onClick={() => navigate('/dashboard')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive('/dashboard') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'hover:bg-slate-800 hover:text-white'}`}
           >
-            👁️ Ver Pasarela (Demo)
+            <LayoutDashboard size={20} className={isActive('/dashboard') ? 'text-white' : 'text-slate-400'} />
+            <span className="font-medium">Dashboard</span>
           </button>
+
+          <button 
+            onClick={() => navigate('/transacciones')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${isActive('/transacciones') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+          >
+            <Receipt size={20} className={isActive('/transacciones') ? 'text-white' : 'text-slate-400 group-hover:text-white transition-colors'} />
+            <span className="font-medium">Transacciones</span>
+          </button>
+
+          <button 
+            onClick={() => navigate('/configuracion')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 hover:text-white transition-all duration-300 group ${isActive('/configuracion') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : ''}`}
+          >
+            <Settings size={20} className={isActive('/configuracion') ? 'text-white' : 'text-slate-400 group-hover:text-white transition-colors'} />
+            <span className="font-medium">Configuración</span>
+          </button>
+          
+          <div className="pt-6 mt-6 border-t border-slate-800/50">
+            <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Herramientas</p>
+            <button 
+              onClick={() => navigate('/checkout')} 
+              className="w-full flex items-center justify-between px-4 py-3 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 rounded-xl transition-all duration-300 border border-transparent hover:border-blue-500/20 group"
+            >
+              <div className="flex items-center gap-3">
+                <ExternalLink size={20} />
+                <span className="font-medium">Ver Pasarela</span>
+              </div>
+              <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded-md group-hover:bg-blue-500 group-hover:text-white transition-colors">DEMO</span>
+            </button>
+          </div>
         </nav>
         
-        <div className="p-4 border-t border-gray-800">
+        {/* Botón de Cerrar Sesión */}
+        <div className="p-4 border-t border-slate-800/50">
           <button 
-            onClick={() => navigate('/login')} /* Botón para cerrar sesión */
-            className="w-full px-4 py-2 text-sm text-red-400 border border-red-400 rounded-lg hover:bg-red-400 hover:text-white transition-colors"
+            onClick={handleLogout} 
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-400 rounded-xl hover:bg-red-500/10 hover:text-red-400 transition-all duration-300"
           >
+            <LogOut size={18} />
             Cerrar Sesión
           </button>
         </div>
       </aside>
 
-      {/* Área Derecha (Contenido Principal) */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* ÁREA DERECHA (Contenido Principal) */}
+      <div className="flex-1 flex flex-col overflow-hidden relative">
         
-        {/* Navbar Superior */}
-        <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6">
-          <h2 className="text-lg font-semibold text-gray-800">Panel de Control</h2>
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-600">Comercio Activo</span>
-            <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-md">
-              Z
+        {/* HEADER SUPERIOR (Efecto Glassmorphism) */}
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 z-10 sticky top-0">
+          
+          {/* Buscador visual */}
+          <div className="flex items-center bg-slate-100 px-4 py-2 rounded-full w-64 border border-slate-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+            <Search size={16} className="text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Buscar pago o ref..." 
+              value={terminoBusqueda}
+              onChange={handleBuscar}
+              className="bg-transparent border-none focus:outline-none ml-2 text-sm w-full text-slate-700 placeholder-slate-400"
+            />
+          </div>
+
+          <div className="flex items-center gap-6">
+            
+            {/* CAMPANITA DE NOTIFICACIONES */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotifMenuOpen(!isNotifMenuOpen)}
+                className="relative text-slate-400 hover:text-blue-600 transition-colors p-1.5"
+              >
+                <Bell size={22} />
+                {notificaciones.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border-2 border-white"></span>
+                  </span>
+                )}
+              </button>
+
+              {/* Menú flotante de Notificaciones */}
+              {isNotifMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsNotifMenuOpen(false)}></div>
+                  <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 transform origin-top-right transition-all">
+                    <div className="px-4 py-3 border-b border-slate-50 flex justify-between items-center mb-1">
+                      <p className="text-sm font-bold text-slate-800">Notificaciones</p>
+                    </div>
+                    
+                    <div className="max-h-64 overflow-y-auto">
+                      {notificaciones.length === 0 ? (
+                        <p className="text-xs text-slate-500 p-4 text-center">No hay alertas nuevas.</p>
+                      ) : (
+                        notificaciones.map((notif, index) => (
+                          <div key={index} className="px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0">
+                            <p className="text-sm font-medium text-slate-800 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                              Nuevo pago de ${notif.monto}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-1 pl-4">
+                              Ref: {notif.referencia || 'N/A'} • {new Date(notif.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    
+                    <button 
+                      onClick={() => { setIsNotifMenuOpen(false); navigate('/transacciones'); }}
+                      className="w-full text-center px-4 py-2 mt-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-slate-50 hover:bg-blue-50 transition-colors"
+                    >
+                      Ver todas las transacciones
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <div className="h-8 w-px bg-slate-200"></div> {/* Divisor vertical */}
+
+            {/* PERFIL DE USUARIO CON MENÚ DESPLEGABLE */}
+            <div className="relative">
+              {/* Botón del perfil */}
+              <div 
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors select-none"
+              >
+                <div className="text-right hidden md:block">
+                  <p className="text-sm font-bold text-slate-700 leading-tight">
+                    {localStorage.getItem('comercioNombre') || 'Comercio'}
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium">Administrador</p>
+                </div>
+                <div className="h-10 w-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/30 uppercase border-2 border-white ring-2 ring-slate-100 transition-transform hover:scale-105">
+                  {(localStorage.getItem('comercioNombre') || 'L').charAt(0)}
+                </div>
+              </div>
+
+              {/* El menú flotante del perfil */}
+              {isProfileMenuOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsProfileMenuOpen(false)}
+                  ></div>
+
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 transform origin-top-right transition-all">
+                    
+                    <div className="px-4 py-3 border-b border-slate-50 mb-2">
+                      <p className="text-sm font-bold text-slate-800 truncate">
+                        {localStorage.getItem('comercioNombre') || 'Comercio'}
+                      </p>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5">
+                        Modo Administrador
+                      </p>
+                    </div>
+
+                    <button 
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        navigate('/perfil');
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-3 transition-colors"
+                    >
+                      <User size={16} className="text-slate-400" />
+                      Mi Perfil
+                    </button>
+
+                    <button 
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        navigate('/configuracion');
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-3 transition-colors"
+                    >
+                      <Settings size={16} className="text-slate-400" />
+                      Configuración
+                    </button>
+
+                    <div className="h-px bg-slate-100 my-2"></div>
+
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                    >
+                      <LogOut size={16} />
+                      Cerrar Sesión
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
 
-        {/* Aquí es donde se inyectará el contenido de cada página */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+        {/* CONTENIDO INYECTADO (El Dashboard) */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F8FAFC] p-8">
           {children}
         </main>
         

@@ -1,13 +1,18 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast'; // 1. Importamos la herramienta de notificaciones
+import { Toaster } from 'react-hot-toast'; 
+
 
 // Importamos los componentes
+import Perfil from './pages/Perfil';
 import DashboardLayout from './components/layout/DashboardLayout';
 import Dashboard from './pages/Dashboard/index';
 import Login from './pages/Login/index';
 import Register from './pages/Register/index';
 import Checkout from './pages/Checkout/index';
+import Landing from './pages/Landing';
+import Configuracion from './pages/Configuracion';
+import Transacciones from './pages/Transacciones';
 
 function App() {
   return (
@@ -16,9 +21,31 @@ function App() {
       <Toaster position="top-right" reverseOrder={false} />
 
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Register />} />
         <Route path="/checkout" element={<Checkout />} />
+
+        <Route path="/transacciones" element={
+          <DashboardLayout>
+            <Transacciones />
+          </DashboardLayout>
+        } />
+
+        <Route 
+          path="/configuracion" 
+          element={
+            <DashboardLayout>
+              <Configuracion />
+            </DashboardLayout>
+          } 
+        />
+
+        <Route path="/perfil" element={
+        <DashboardLayout>
+          <Perfil />
+        </DashboardLayout>
+      } />
 
         <Route 
           path="/dashboard" 

@@ -40,7 +40,7 @@ export default function Register() {
 
     try {
       // Usamos fetch para enviar los datos al puerto 3000 (tu servidor Node.js)
-      const response = await fetch('http://localhost:3000/api/registro', {
+      const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/registro', {
         method: 'POST', // Método para enviar datos
         headers: {
           'Content-Type': 'application/json', // Le decimos que enviamos un JSON
@@ -82,7 +82,7 @@ export default function Register() {
         <div>
           <h2 className="text-center text-3xl font-extrabold text-gray-900">Crear Cuenta</h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Únete a Zahara<span className="text-blue-600 font-bold">Pay</span> y empieza a cobrar
+            Únete a Lumi<span className="text-blue-600">na</span>  y empieza a cobrar
           </p>
         </div>
 
