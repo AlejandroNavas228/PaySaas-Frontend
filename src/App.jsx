@@ -13,6 +13,7 @@ import Checkout from './pages/Checkout/index';
 import Landing from './pages/Landing';
 import Configuracion from './pages/Configuracion';
 import Transacciones from './pages/Transacciones';
+import Documentacion from './pages/Desarrolladores/index';
 
 function App() {
   return (
@@ -25,6 +26,16 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Register />} />
         <Route path="/checkout" element={<Checkout />} />
+        
+        <Route 
+          path="/desarrolladores" 
+          element={
+            <DashboardLayout>
+              <Documentacion />
+            </DashboardLayout>
+          } 
+        />
+
 
         <Route path="/transacciones" element={
           <DashboardLayout>

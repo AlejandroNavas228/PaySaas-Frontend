@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'; 
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { LayoutDashboard, Receipt, Settings, LogOut, ExternalLink, Bell, Search, User } from 'lucide-react';
+import { LayoutDashboard, Receipt, Settings, LogOut, ExternalLink, Bell, Search, User, Terminal } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
   const navigate = useNavigate();
@@ -30,15 +30,13 @@ export default function DashboardLayout({ children }) {
   };
 
   // ---> LÓGICA DE NOTIFICACIONES REALES <---
-  // ---> LÓGICA DE NOTIFICACIONES REALES <---
   useEffect(() => {
     const cargarNotificaciones = async () => {
       const comercioId = localStorage.getItem('comercioId');
-      const token = localStorage.getItem('token'); // <--- Buscamos el token
+      const token = localStorage.getItem('token'); 
 
       if (comercioId && token) {
         try {
-          // Enviamos la petición con su llave de acceso
           const response = await fetch(`https://lumina-backend-3pu1.onrender.com/api/pagos/${comercioId}`, {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -47,7 +45,7 @@ export default function DashboardLayout({ children }) {
           
           if (response.ok) {
             const data = await response.json();
-            setNotificaciones(data.slice(0, 3)); // Solo las 3 más recientes
+            setNotificaciones(data.slice(0, 3)); 
           }
         } catch (error) { 
           console.error(error); 
@@ -110,6 +108,15 @@ export default function DashboardLayout({ children }) {
           >
             <Settings size={20} className={isActive('/configuracion') ? 'text-white' : 'text-slate-400 group-hover:text-white transition-colors'} />
             <span className="font-medium">Configuración</span>
+          </button>
+          
+          {/* ---> NUEVO BOTÓN: API & DESARROLLADORES <--- */}
+          <button 
+            onClick={() => navigate('/desarrolladores')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 hover:text-white transition-all duration-300 group ${isActive('/desarrolladores') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : ''}`}
+          >
+            <Terminal size={20} className={isActive('/desarrolladores') ? 'text-white' : 'text-slate-400 group-hover:text-white transition-colors'} />
+            <span className="font-medium">Desarrolladores</span>
           </button>
           
           <div className="pt-6 mt-6 border-t border-slate-800/50">
