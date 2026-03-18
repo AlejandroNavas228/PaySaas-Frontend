@@ -56,10 +56,10 @@ export default function Register() {
       const data = await response.json();
 
       // Si el servidor responde con un error (ej. el correo ya existe)
-      if (!response.ok) {
-        toast.error(data.error || 'Hubo un error al registrar', { id: toastId });
-        setIsRegistering(false);
-        return;
+      if (response.ok) {
+        toast.success('¡Registro exitoso! Revisa tu correo.');
+        localStorage.setItem('emailPendiente', email); // Guardamos el correo para la siguiente pantalla
+        navigate('/verificar'); // Lo mandamos a poner el código
       }
 
       // Si todo sale bien, mostramos el éxito y navegamos
