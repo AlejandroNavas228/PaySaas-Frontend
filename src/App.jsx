@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 
 
 // Importamos los componentes
+import RecuperarPassword from './pages/RecuperarPassword';
 import Verificacion from './pages/Verificacion/index';
 import Perfil from './pages/Perfil';
 import DashboardLayout from './components/layout/DashboardLayout';
@@ -28,6 +29,7 @@ function App() {
         <Route path="/registro" element={<Register />} />
         <Route path="/checkout" element={<Checkout />} />
          <Route path="/verificar" element={<Verificacion />} />
+         <Route path="/recuperar" element={<RecuperarPassword />} />
         
         <Route 
           path="/desarrolladores" 
