@@ -39,36 +39,30 @@ export default function Register() {
     const toastId = toast.loading('Creando tu cuenta...');
 
     try {
-      // Usamos fetch para enviar los datos al puerto 3000 (tu servidor Node.js)
+      // Usamos fetch para enviar los datos a tu servidor
       const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/registro', {
-        method: 'POST', // Método para enviar datos
-        headers: {
-          'Content-Type': 'application/json', // Le decimos que enviamos un JSON
-        },
-        body: JSON.stringify({
-          comercio: comercio,
-          email: email,
-          password: password
-        })
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comercio, email, password })
       });
 
       // Convertimos la respuesta del servidor a formato JSON
       const data = await response.json();
 
-      // Si el servidor responde con un error (ej. el correo ya existe)
       if (response.ok) {
-        toast.success('¡Registro exitoso! Revisa tu correo.');
-        localStorage.setItem('emailPendiente', email); // Guardamos el correo para la siguiente pantalla
-        navigate('/verificar'); // Lo mandamos a poner el código
+        // 1. SI TODO SALE BIEN: Mostramos mensaje, guardamos email y lo enviamos a verificar
+        toast.success('¡Registro exitoso! Revisa tu correo.', { id: toastId });
+        localStorage.setItem('emailPendiente', email); 
+        navigate('/verificar'); 
+        return; // IMPORTANTE: Este return hace que el código se detenga aquí
+      } else {
+        // 2. SI EL SERVIDOR DEVUELVE ERROR (Ej. correo repetido o error 500)
+        toast.error(data.error || 'No se pudo crear la cuenta.', { id: toastId });
       }
 
-      // Si todo sale bien, mostramos el éxito y navegamos
-      toast.success(`¡Cuenta creada para ${data.comercio.nombre}!`, { id: toastId });
-      navigate('/dashboard');
-
     } catch (error) {
-      // Si el servidor está apagado o hay un error de red
-      console.error(error);
+      // 3. SI EL SERVIDOR ESTÁ CAÍDO O NO HAY INTERNET
+      console.error("Error en la petición:", error);
       toast.error('Error de conexión con el servidor.', { id: toastId });
     } finally {
       setIsRegistering(false);
