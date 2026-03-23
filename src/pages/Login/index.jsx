@@ -139,7 +139,7 @@ export default function Login() {
 
           {/* --- BOTÓN DE GOOGLE --- */}
           <div className="mt-6 flex justify-center">
-            <GoogleLogin
+    <GoogleLogin
             onSuccess={async (credentialResponse) => {
               try {
                 // Enviamos el token de Google a nuestro backend
@@ -152,18 +152,26 @@ export default function Login() {
                 const data = await response.json();
 
                 if (response.ok) {
-                  toast.success('¡Bienvenido a Lumina!');
-                  // Guardamos el token de Lumina y redirigimos
+                  // 1. Mostramos el mensaje de éxito
+                  toast.success(`¡Bienvenido a Lumina, ${data.comercio.nombre}!`);
+                  
+                  // 2. ¡LA CLAVE! Guardamos los 3 datos exactos que necesita tu Dashboard
+                  localStorage.setItem('comercioId', data.comercio.id);
+                  localStorage.setItem('comercioNombre', data.comercio.nombre);
                   localStorage.setItem('token', data.token);
-                  navigate('/dashboard'); // Asegúrate de que esta sea la ruta de tu panel
+                  
+                  // 3. Redirección forzada e infalible
+                  window.location.href = '/dashboard'; 
+                  
                 } else {
                   toast.error(data.error || 'Error al iniciar sesión con Google');
                 }
               } catch (error) {
-                console.error(error);
+                console.error('Error en el login con Google:', error);
                 toast.error('Error conectando con el servidor');
               }
             }}
+            // ... resto de tus props (onError, theme, etc)
             onError={() => {
               toast.error('Ocurrió un error con la ventana de Google');
             }}
