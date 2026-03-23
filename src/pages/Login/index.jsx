@@ -1,5 +1,5 @@
 import { GoogleLogin } from '@react-oauth/google';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef} from 'react';
 import { Github } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -11,19 +11,26 @@ export default function Login() {
   // Estado para bloquear el botón mientras el backend piensa
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  // Creamos una bandera para saber si ya pedimos los datos
+  const githubIntentado = useRef(false);
+
   useEffect(() => {
-    // Leemos la URL para ver si GitHub nos mandó un parámetro "?code="
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
 
-    if (code) {
+    // Solo ejecutamos si hay código Y si no lo hemos intentado antes
+    if (code && !githubIntentado.current) {
+      githubIntentado.current = true; // Bajamos la bandera para que no se repita
+
+      // Limpiamos la URL para que se vea profesional (quitamos el ?code=...)
+      window.history.replaceState({}, document.title, window.location.pathname);
+
       const autenticarConGithub = async () => {
-        setIsLoggingIn(true); // Usamos tu estado de carga para que el usuario espere
+        setIsLoggingIn(true);
         const toastId = toast.loading('Conectando con GitHub...');
 
         try {
-          // Ajusta esta URL a tu localhost si estás probando local, o Render si ya lo subiste
-         const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/login/github', {
+          const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/login/github', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code })
@@ -51,7 +58,6 @@ export default function Login() {
       autenticarConGithub();
     }
   }, []);
-  
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => { // La función ahora es asíncrona
