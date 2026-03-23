@@ -1,5 +1,6 @@
 import { GoogleLogin } from '@react-oauth/google';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Github } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -9,6 +10,47 @@ export default function Login() {
   
   // Estado para bloquear el botón mientras el backend piensa
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  useEffect(() => {
+    // Leemos la URL para ver si GitHub nos mandó un parámetro "?code="
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+
+    if (code) {
+      const autenticarConGithub = async () => {
+        setIsLoggingIn(true); // Usamos tu estado de carga para que el usuario espere
+        const toastId = toast.loading('Conectando con GitHub...');
+
+        try {
+          // Ajusta esta URL a tu localhost si estás probando local, o Render si ya lo subiste
+         const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/login/github', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+          });
+          
+          const data = await response.json();
+
+          if (response.ok) {
+            toast.success(`¡Bienvenido a Lumina, ${data.comercio.nombre}!`, { id: toastId });
+            localStorage.setItem('comercioId', data.comercio.id);
+            localStorage.setItem('comercioNombre', data.comercio.nombre);
+            localStorage.setItem('token', data.token);
+            window.location.href = '/dashboard';
+          } else {
+            toast.error(data.error || 'Error con GitHub', { id: toastId });
+            setIsLoggingIn(false);
+          }
+        } catch (error) {
+          console.error('Error en autenticación con GitHub:', error);
+          toast.error('Error de conexión con el servidor', { id: toastId });
+          setIsLoggingIn(false);
+        }
+      };
+
+      autenticarConGithub();
+    }
+  }, []);
   
   const navigate = useNavigate();
 
@@ -171,7 +213,6 @@ export default function Login() {
                 toast.error('Error conectando con el servidor');
               }
             }}
-            // ... resto de tus props (onError, theme, etc)
             onError={() => {
               toast.error('Ocurrió un error con la ventana de Google');
             }}
@@ -180,6 +221,20 @@ export default function Login() {
             shape="pill"
           />
           </div>
+
+          {/* --- BOTÓN DE GITHUB --- */}
+          <button
+            type="button"
+            onClick={() => {
+              // Pon TU Client ID público de GitHub aquí abajo
+              const GITHUB_CLIENT_ID = "Ov23li3MwyqIDeyqXKp9"; 
+              window.location.href = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=user:email`;
+            }}
+            className="mt-4 w-full flex items-center justify-center gap-2 bg-[#24292F] text-white py-3 rounded-xl font-bold hover:bg-[#1b1f23] transition-all"
+          >
+            <Github size={20} />
+            Continuar con GitHub
+          </button>
         
         <div className="mt-6 text-center border-t border-gray-100 pt-6">
           <p className="text-sm text-gray-600">
