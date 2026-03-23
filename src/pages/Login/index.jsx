@@ -1,3 +1,4 @@
+import { GoogleLogin } from '@react-oauth/google';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -128,6 +129,49 @@ export default function Login() {
             </button>
           </div>
         </form>
+
+        {/* --- LÍNEA DIVISORIA --- */}
+          <div className="mt-6 grid grid-cols-3 items-center text-slate-400">
+            <hr className="border-slate-200" />
+            <p className="text-center text-sm font-semibold">O continúa con</p>
+            <hr className="border-slate-200" />
+          </div>
+
+          {/* --- BOTÓN DE GOOGLE --- */}
+          <div className="mt-6 flex justify-center">
+            <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              try {
+                // Enviamos el token de Google a nuestro backend
+                const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/login/google', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ token: credentialResponse.credential })
+                });
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                  toast.success('¡Bienvenido a Lumina!');
+                  // Guardamos el token de Lumina y redirigimos
+                  localStorage.setItem('token', data.token);
+                  navigate('/dashboard'); // Asegúrate de que esta sea la ruta de tu panel
+                } else {
+                  toast.error(data.error || 'Error al iniciar sesión con Google');
+                }
+              } catch (error) {
+                console.error(error);
+                toast.error('Error conectando con el servidor');
+              }
+            }}
+            onError={() => {
+              toast.error('Ocurrió un error con la ventana de Google');
+            }}
+            theme="outline"
+            size="large"
+            shape="pill"
+          />
+          </div>
         
         <div className="mt-6 text-center border-t border-gray-100 pt-6">
           <p className="text-sm text-gray-600">
