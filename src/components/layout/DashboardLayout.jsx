@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'; 
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { LayoutDashboard, Receipt, Settings, LogOut, ExternalLink, Bell, Search, User, Terminal } from 'lucide-react';
+import { LayoutDashboard, Receipt, Settings, LogOut, ExternalLink, Bell, Search, User, Terminal, Zap } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
   const navigate = useNavigate();
@@ -66,6 +66,15 @@ export default function DashboardLayout({ children }) {
 
   const isActive = (path) => location.pathname === path;
 
+  // ---> MAPA DE BOTONES DEL MENÚ (Refactorizado) <---
+  const menuItems = [
+    { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
+    { name: 'Transacciones', icon: <Receipt size={20} />, path: '/transacciones' },
+    { name: 'Configuración', icon: <Settings size={20} />, path: '/configuracion' },
+    { name: 'Desarrolladores', icon: <Terminal size={20} />, path: '/desarrolladores' },
+    { name: 'Planes Pro', icon: <Zap size={20} />, path: '/planes', isSpecial: true }
+  ];
+
   return (
     <div className="flex h-screen bg-[#F8FAFC] font-sans overflow-hidden">
       
@@ -83,41 +92,29 @@ export default function DashboardLayout({ children }) {
         </div>
         
         {/* Navegación principal */}
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-4 py-6 overflow-y-auto">
           <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Menú Principal</p>
           
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive('/dashboard') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'hover:bg-slate-800 hover:text-white'}`}
-          >
-            <LayoutDashboard size={20} className={isActive('/dashboard') ? 'text-white' : 'text-slate-400'} />
-            <span className="font-medium">Dashboard</span>
-          </button>
-
-          <button 
-            onClick={() => navigate('/transacciones')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${isActive('/transacciones') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-          >
-            <Receipt size={20} className={isActive('/transacciones') ? 'text-white' : 'text-slate-400 group-hover:text-white transition-colors'} />
-            <span className="font-medium">Transacciones</span>
-          </button>
-
-          <button 
-            onClick={() => navigate('/configuracion')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 hover:text-white transition-all duration-300 group ${isActive('/configuracion') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : ''}`}
-          >
-            <Settings size={20} className={isActive('/configuracion') ? 'text-white' : 'text-slate-400 group-hover:text-white transition-colors'} />
-            <span className="font-medium">Configuración</span>
-          </button>
-          
-          {/* ---> NUEVO BOTÓN: API & DESARROLLADORES <--- */}
-          <button 
-            onClick={() => navigate('/desarrolladores')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 hover:text-white transition-all duration-300 group ${isActive('/desarrolladores') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : ''}`}
-          >
-            <Terminal size={20} className={isActive('/desarrolladores') ? 'text-white' : 'text-slate-400 group-hover:text-white transition-colors'} />
-            <span className="font-medium">Desarrolladores</span>
-          </button>
+          <div className="space-y-2">
+            {menuItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <button 
+                  key={item.name}
+                  onClick={() => navigate(item.path)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group
+                    ${active ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}
+                    ${item.isSpecial ? 'border border-blue-500/30 mt-6 bg-blue-500/10 hover:bg-blue-500/20' : ''}
+                  `}
+                >
+                  <div className={`${active ? 'text-white' : (item.isSpecial ? 'text-blue-400' : 'text-slate-400 group-hover:text-white')} transition-colors`}>
+                    {item.icon}
+                  </div>
+                  <span className="font-medium">{item.name}</span>
+                </button>
+              );
+            })}
+          </div>
           
           <div className="pt-6 mt-6 border-t border-slate-800/50">
             <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Herramientas</p>

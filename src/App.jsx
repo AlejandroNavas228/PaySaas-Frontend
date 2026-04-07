@@ -16,6 +16,7 @@ import Landing from './pages/Landing';
 import Configuracion from './pages/Configuracion';
 import Transacciones from './pages/Transacciones';
 import Documentacion from './pages/Desarrolladores/index';
+import Planes from './pages/Planes';
 
 function App() {
   return (
@@ -27,9 +28,10 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Register />} />
-        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/checkout/:id" element={<Checkout />} />
          <Route path="/verificar" element={<Verificacion />} />
          <Route path="/recuperar" element={<RecuperarPassword />} />
+         <Route path="/planes" element={<Planes />} />
         
         <Route 
           path="/desarrolladores" 
