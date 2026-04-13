@@ -26,11 +26,11 @@ export default function Planes() {
                 toast.success('¡Plan Starter activado!', { id: toastId });
                 setTimeout(() => navigate('/dashboard'), 2000);
             } else {
-                // 👇 ESTO FALTABA: Atrapar el error del backend
                 const errorData = await response.json().catch(() => ({}));
                 toast.error(errorData.error || 'Ruta no encontrada en el backend', { id: toastId });
             }
         } catch (e) { 
+            console.error(e);
             toast.error('Error de red al conectar', { id: toastId }); 
         } finally { 
             setProcesando(false); 
@@ -43,21 +43,21 @@ export default function Planes() {
     const toastId = toast.loading('Generando orden de pago...');
     
     try {
-      // 1. Llamamos a nuestra propia pasarela para generar un link de cobro
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/checkout', {
+      // ✅ CORREGIDO: Usando backticks para que lea la variable de entorno
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': 'zp_live_LUMINA_MASTER_KEY' // <--- La llave de tu "Caja Registradora"
+          'x-api-key': 'zp_live_LUMINA_MASTER_KEY' // Tu llave maestra
         },
         body: JSON.stringify({
           monto: precio,
           moneda: "USD",
           descripcion: `Suscripción Mensual - Plan ${nuevoPlan.toUpperCase()}`,
           referenciaComercio: `SUB-${localStorage.getItem('comercioId')}-${Date.now()}`,
-          // Cuando paguen, los regresamos a su panel
-          urlExito: "http://localhost:5173/dashboard", 
-          urlCancelado: "http://localhost:5173/planes",
+          // ✅ CORREGIDO: Usando window.location.origin para que funcione en Vercel y Localhost
+          urlExito: `${window.location.origin}/dashboard`, 
+          urlCancelado: `${window.location.origin}/planes`,
         })
       });
 
@@ -65,10 +65,10 @@ export default function Planes() {
 
       if (response.ok && data.url_pago) {
         toast.success('Redirigiendo a pasarela segura...', { id: toastId });
-        // 2. Redirigimos al usuario a la pantalla oscura de Lumina Checkout
+        // Redirigimos al usuario a la pantalla oscura de Lumina Checkout
         window.location.href = data.url_pago; 
       } else {
-        toast.error('Error al generar la orden.', { id: toastId });
+        toast.error(data.error || 'Error al generar la orden.', { id: toastId });
       }
     } catch (error) {
       console.error(error);
