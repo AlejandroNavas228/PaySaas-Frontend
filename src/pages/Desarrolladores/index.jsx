@@ -14,7 +14,7 @@ export default function Desarrolladores() {
       const comercioId = localStorage.getItem('comercioId');
       const token = localStorage.getItem('token');
       try {
-        const response = await fetch(`https://lumina-backend-3pu1.onrender.com/api/comercio/${comercioId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -43,7 +43,7 @@ export default function Desarrolladores() {
   };
 
   const codigoEjemplo = {
-    javascript: `const url = "https://lumina-backend-3pu1.onrender.com/api/checkout";
+    javascript: `const url = \`${import.meta.env.VITE_API_URL}/api/checkout\`;
 const options = {
   method: "POST",
   headers: {
@@ -63,7 +63,7 @@ const options = {
 fetch(url, options)
   .then(res => res.json())
   .then(data => console.log("Abre este link:", data.url_pago));`,
-    curl: `curl -X POST https://lumina-backend-3pu1.onrender.com/api/checkout \\
+    curl: `curl -X POST ${import.meta.env.VITE_API_URL}/api/checkout \\
 -H "Content-Type: application/json" \\
 -H "x-api-key: ${apiKey}" \\
 -d '{
@@ -195,7 +195,7 @@ fetch(url, options)
             
             <div className="bg-blue-900/30 px-6 py-3 border-t border-blue-900/50 flex items-center gap-2">
               <Shield size={16} className="text-blue-400" />
-              <span className="text-xs font-medium text-blue-200">Endpoint de Producción: <code className="bg-blue-950 px-1 rounded">https://lumina-backend-3pu1.onrender.com/api/checkout</code></span>
+              <span className="text-xs font-medium text-blue-200">Endpoint de Producción: <code className="bg-blue-950 px-1 rounded">${import.meta.env.VITE_API_URL}/api/checkout</code></span>
             </div>
           </div>
         </div>

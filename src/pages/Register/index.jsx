@@ -66,7 +66,7 @@ export default function Register() {
     const toastId = toast.loading('Creando tu cuenta...');
 
     try {
-      const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/registro', {
+      const response = await fetch('${import.meta.env.VITE_API_URL}/api/registro', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ comercio, email, password })

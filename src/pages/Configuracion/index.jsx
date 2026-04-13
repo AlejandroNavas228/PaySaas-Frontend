@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Key, Webhook, Wallet, Save, Copy, CheckCircle2, ArrowLeft, Smartphone, DollarSign, CreditCard } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Key, Webhook, Wallet, Save, Copy, CheckCircle2, ArrowLeft, Smartphone, DollarSign, CreditCard, Zap, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Configuracion() {
   const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  const [esPro, setEsPro] = useState(false);
   
   // Estados Generales
   const [apiKey, setApiKey] = useState('');
@@ -20,6 +21,7 @@ export default function Configuracion() {
   const [pmBanco, setPmBanco] = useState('');
   const [pmTel, setPmTel] = useState('');
   const [zelleEmail, setZelleEmail] = useState('');
+  const [zinliEmail, setZinliEmail] = useState('');
   const [paypalId, setPaypalId] = useState('');
 
   // 1. Cargar datos al entrar
@@ -34,7 +36,7 @@ export default function Configuracion() {
       }
 
       try {
-        const response = await fetch(`https://lumina-backend-3pu1.onrender.com/api/comercio/${comercioId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -47,8 +49,13 @@ export default function Configuracion() {
           setPmBanco(data.pago_movil_banco || '');
           setPmTel(data.pago_movil_tel || '');
           setZelleEmail(data.zelle_email || '');
+          setZinliEmail(data.zinli_email || '');
           setPaypalId(data.paypal_client_id || '');
-          setPlanActual(data.plan_actual || 'starter');
+          
+          const plan = data.plan_actual || 'starter';
+          setPlanActual(plan);
+          // Lógica SaaS: Es Pro si su plan es pro o elite
+          setEsPro(plan === 'pro' || plan === 'elite'); 
         }
       } catch (error) {
         console.error(error);
@@ -67,7 +74,7 @@ export default function Configuracion() {
     const comercioId = localStorage.getItem('comercioId');
 
     try {
-      const response = await fetch(`https://lumina-backend-3pu1.onrender.com/api/comercio/${comercioId}/config`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}/config`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -80,6 +87,7 @@ export default function Configuracion() {
           pago_movil_banco: pmBanco,
           pago_movil_tel: pmTel,
           zelle_email: zelleEmail,
+          zinli_email: zinliEmail,
           paypal_client_id: paypalId
         })
       });
@@ -114,7 +122,7 @@ export default function Configuracion() {
           <ArrowLeft size={20} /> Volver al Panel
         </button>
 
-        <div className="flex justify-between items-end mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 mb-2">Configuración</h1>
             <p className="text-slate-500">Administra tus métodos de cobro y credenciales.</p>
@@ -124,22 +132,76 @@ export default function Configuracion() {
           </div>
         </div>
 
+        {/* ANUNCIO GLOBAL UPSELL (Solo se muestra si NO es Pro) */}
+        {!esPro && (
+          <div className="mb-8 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between shadow-xl border border-slate-700">
+            <div className="mb-4 md:mb-0">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap size={20} className="text-amber-400" />
+                <h3 className="text-lg font-bold text-white">Desbloquea el poder de Lumina Pro</h3>
+              </div>
+              <p className="text-slate-300 text-sm max-w-lg">
+                Acepta pagos en Binance, PayPal y automatiza tus entregas con Webhooks. Pasa al siguiente nivel hoy mismo.
+              </p>
+            </div>
+            <Link to="/planes" className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-colors whitespace-nowrap shadow-lg shadow-blue-500/20">
+              Mejorar Plan
+            </Link>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           
-          {/* COLUMNA IZQUIERDA: Cripto y Desarrolladores */}
+          {/* COLUMNA IZQUIERDA */}
           <div className="space-y-6">
             
-            {/* WEB3 / USDT */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-[#FCD535]/10 text-[#FCD535] rounded-lg"><Wallet size={24} className="text-yellow-600" /></div>
-                <h2 className="text-lg font-bold text-slate-800">Cripto (USDT)</h2>
+            {/* WEB3 / BINANCE (BLOQUEADO SI ES STARTER) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+              {!esPro && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center">
+                  <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-100 text-center max-w-[200px]">
+                    <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-2"><Lock size={16} /></div>
+                    <h4 className="font-bold text-slate-800 text-sm mb-1">Función Premium</h4>
+                    <Link to="/planes" className="text-blue-600 font-bold text-xs hover:underline">Mejorar plan</Link>
+                  </div>
+                </div>
+              )}
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-[#FCD535]/10 text-[#FCD535] rounded-lg"><Wallet size={24} className="text-yellow-600" /></div>
+                  <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    Cripto (USDT) {!esPro && <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded uppercase font-black">PRO</span>}
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">Recibe pagos directo a tu billetera Web3 o Binance.</p>
+                <input type="text" placeholder="Ej: 0x1234abcd..." disabled={!esPro} value={wallet} onChange={(e) => setWallet(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 font-mono text-sm outline-none focus:border-blue-500 disabled:bg-slate-50" />
               </div>
-              <p className="text-xs text-slate-500 mb-4">Recibe pagos directo a tu billetera Web3 (Red BSC).</p>
-              <input type="text" placeholder="Ej: 0x1234abcd..." value={wallet} onChange={(e) => setWallet(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 font-mono text-sm outline-none focus:border-blue-500" />
             </div>
 
-            {/* ZELLE */}
+            {/* PAYPAL (BLOQUEADO SI ES STARTER) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+              {!esPro && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center">
+                  <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-100 text-center max-w-[200px]">
+                    <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-2"><Lock size={16} /></div>
+                    <h4 className="font-bold text-slate-800 text-sm mb-1">Función Premium</h4>
+                    <Link to="/planes" className="text-blue-600 font-bold text-xs hover:underline">Mejorar plan</Link>
+                  </div>
+                </div>
+              )}
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><CreditCard size={24} /></div>
+                  <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    PayPal {!esPro && <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded uppercase font-black">PRO</span>}
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">Ingresa tu Client ID de PayPal Developer.</p>
+                <input type="text" placeholder="Client ID" disabled={!esPro} value={paypalId} onChange={(e) => setPaypalId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500 disabled:bg-slate-50" />
+              </div>
+            </div>
+
+            {/* ZELLE (GRATIS) */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-purple-50 text-purple-600 rounded-lg"><DollarSign size={24} /></div>
@@ -148,22 +210,21 @@ export default function Configuracion() {
               <input type="email" placeholder="correo@zelle.com" value={zelleEmail} onChange={(e) => setZelleEmail(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500" />
             </div>
 
-            {/* PAYPAL */}
+            {/* ZINLI (GRATIS) */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><CreditCard size={24} /></div>
-                <h2 className="text-lg font-bold text-slate-800">PayPal</h2>
+                <div className="p-2 bg-pink-50 text-pink-600 rounded-lg"><DollarSign size={24} /></div>
+                <h2 className="text-lg font-bold text-slate-800">Zinli</h2>
               </div>
-              <p className="text-xs text-slate-500 mb-4">Ingresa tu Client ID de PayPal Developer.</p>
-              <input type="text" placeholder="Client ID" value={paypalId} onChange={(e) => setPaypalId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500" />
+              <input type="email" placeholder="correo@zinli.com" value={zinliEmail} onChange={(e) => setZinliEmail(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500" />
             </div>
 
           </div>
 
-          {/* COLUMNA DERECHA: Nacional y Sistema */}
+          {/* COLUMNA DERECHA */}
           <div className="space-y-6">
             
-            {/* PAGO MÓVIL */}
+            {/* PAGO MÓVIL (GRATIS) */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-green-50 text-green-600 rounded-lg"><Smartphone size={24} /></div>
@@ -176,7 +237,7 @@ export default function Configuracion() {
               </div>
             </div>
 
-            {/* API KEY */}
+            {/* API KEY (GRATIS) */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-slate-100 text-slate-600 rounded-lg"><Key size={24} /></div>
@@ -190,13 +251,26 @@ export default function Configuracion() {
               </div>
             </div>
 
-            {/* WEBHOOK */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-slate-100 text-slate-600 rounded-lg"><Webhook size={24} /></div>
-                <h2 className="text-lg font-bold text-slate-800">Webhook URL</h2>
+            {/* WEBHOOK (BLOQUEADO SI ES STARTER) */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+               {!esPro && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center">
+                  <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-100 text-center max-w-[200px]">
+                    <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-2"><Lock size={16} /></div>
+                    <h4 className="font-bold text-slate-800 text-sm mb-1">Función Premium</h4>
+                    <Link to="/planes" className="text-blue-600 font-bold text-xs hover:underline">Mejorar plan</Link>
+                  </div>
+                </div>
+              )}
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-slate-100 text-slate-600 rounded-lg"><Webhook size={24} /></div>
+                  <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    Webhook URL {!esPro && <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded uppercase font-black">PRO</span>}
+                  </h2>
+                </div>
+                <input type="url" placeholder="https://tutienda.com/api/webhook" disabled={!esPro} value={webhook} onChange={(e) => setWebhook(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500 disabled:bg-slate-50" />
               </div>
-              <input type="url" placeholder="https://tutienda.com/api/webhook" value={webhook} onChange={(e) => setWebhook(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500" />
             </div>
 
           </div>

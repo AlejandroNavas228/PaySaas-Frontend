@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef} from 'react';
 import { Github } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import LogoLumina from '../../components/ui/LogoLumina';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -30,7 +31,7 @@ export default function Login() {
         const toastId = toast.loading('Conectando con GitHub...');
 
         try {
-          const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/login/github', {
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/api/login/github`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code })
@@ -60,7 +61,7 @@ export default function Login() {
   }, []);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => { // La función ahora es asíncrona
+  const handleSubmit = async (e) => { 
     e.preventDefault();
 
     // 1. Validaciones básicas del frontend
@@ -85,7 +86,7 @@ export default function Login() {
 
     try {
       // Hacemos la petición POST a la ruta de login de tu API
-      const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,9 +129,10 @@ export default function Login() {
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-lg border border-gray-100">
         
         <div>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
-            Lumi<span className="text-blue-600">na</span>
-          </h2>
+          <div className="flex justify-center">
+            {/* Como el fondo es blanco, le pasamos una clase para que el texto sea oscuro */}
+            <LogoLumina width={48} height={48} className="!text-gray-900 scale-125 mb-2" />
+          </div>
           <p className="mt-2 text-center text-sm text-gray-600">
             Inicia sesión para gestionar tus cobros
           </p>
@@ -191,7 +193,7 @@ export default function Login() {
             onSuccess={async (credentialResponse) => {
               try {
                 // Enviamos el token de Google a nuestro backend
-                const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/login/google', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/login/google`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ token: credentialResponse.credential })

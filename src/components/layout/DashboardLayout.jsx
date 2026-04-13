@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'; 
+import LogoLumina from '../ui/LogoLumina';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { LayoutDashboard, Receipt, Settings, LogOut, ExternalLink, Bell, Search, User, Terminal, Zap } from 'lucide-react';
+import { LayoutDashboard, Receipt, Settings, LogOut, ExternalLink, Bell, Search, User, Terminal, Zap, Menu, X } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
   const navigate = useNavigate();
@@ -11,6 +12,9 @@ export default function DashboardLayout({ children }) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotifMenuOpen, setIsNotifMenuOpen] = useState(false);
   const [notificaciones, setNotificaciones] = useState([]);
+  
+  // ---> NUEVO: ESTADO PARA EL MENÚ LATERAL EN MÓVILES <---
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // ---> LÓGICA DE BÚSQUEDA <---
   const [searchParams, setSearchParams] = useSearchParams();
@@ -37,7 +41,7 @@ export default function DashboardLayout({ children }) {
 
       if (comercioId && token) {
         try {
-          const response = await fetch(`https://lumina-backend-3pu1.onrender.com/api/pagos/${comercioId}`, {
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${comercioId}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -66,7 +70,7 @@ export default function DashboardLayout({ children }) {
 
   const isActive = (path) => location.pathname === path;
 
-  // ---> MAPA DE BOTONES DEL MENÚ (Refactorizado) <---
+  
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
     { name: 'Transacciones', icon: <Receipt size={20} />, path: '/transacciones' },
@@ -78,17 +82,40 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="flex h-screen bg-[#F8FAFC] font-sans overflow-hidden">
       
+      {/* ---> NUEVO: FONDO OSCURO PARA EL MENÚ EN MÓVIL <--- */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/50 z-30 md:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+
       {/* SIDEBAR LATERAL (Moderna y Oscura) */}
-      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 shadow-2xl z-20">
+      {/* ---> ACTUALIZADO: CLASES RESPONSIVAS Y TRANSCISIONES <--- */}
+      <aside 
+        className={`fixed inset-y-0 left-0 w-64 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 shadow-2xl z-40 md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
         
+        {/* Botón de cerrar (solo móvil) */}
+        <button 
+          className="absolute top-6 right-4 text-slate-400 hover:text-white md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        >
+          <X size={24} />
+        </button>
+
         {/* Logo de Lumina */}
-        <div className="flex items-center justify-center h-20 border-b border-slate-800/50">
-          <h1 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
-              <span className="text-white text-lg">L</span>
-            </div>
-            Lumi<span className="text-blue-600">na</span>
-          </h1>
+        <div className="flex items-center justify-center h-20 border-b border-slate-800/50 mt-4 md:mt-0">
+          <div className="flex items-center gap-2">
+            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="20" y="15" width="24" height="70" rx="12" fill="#94A3B8" opacity="0.5"/>
+              <rect x="20" y="61" width="65" height="24" rx="12" fill="#3B82F6" opacity="0.9"/>
+              <rect x="20" y="61" width="24" height="24" rx="10" fill="#60A5FA" opacity="0.6"/>
+            </svg>
+            <span className="text-2xl font-extrabold tracking-tight text-white">
+              Lumi<span className="text-blue-500">na</span>
+            </span>
+          </div>
         </div>
         
         {/* Navegación principal */}
@@ -101,7 +128,10 @@ export default function DashboardLayout({ children }) {
               return (
                 <button 
                   key={item.name}
-                  onClick={() => navigate(item.path)}
+                  onClick={() => {
+                    navigate(item.path);
+                    setIsSidebarOpen(false); // Cierra el menú al elegir opción en móvil
+                  }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group
                     ${active ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}
                     ${item.isSpecial ? 'border border-blue-500/30 mt-6 bg-blue-500/10 hover:bg-blue-500/20' : ''}
@@ -119,7 +149,10 @@ export default function DashboardLayout({ children }) {
           <div className="pt-6 mt-6 border-t border-slate-800/50">
             <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Herramientas</p>
             <button 
-              onClick={() => navigate('/checkout')} 
+              onClick={() => {
+                navigate('/checkout');
+                setIsSidebarOpen(false);
+              }} 
               className="w-full flex items-center justify-between px-4 py-3 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 rounded-xl transition-all duration-300 border border-transparent hover:border-blue-500/20 group"
             >
               <div className="flex items-center gap-3">
@@ -144,13 +177,23 @@ export default function DashboardLayout({ children }) {
       </aside>
 
       {/* ÁREA DERECHA (Contenido Principal) */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      {/* ---> ACTUALIZADO: ELIMINADA CLASE RELATIVE QUE PODRÍA CAUSAR DESBORDAMIENTOS EN MÓVIL <--- */}
+      <div className="flex-1 flex flex-col h-full w-full">
         
         {/* HEADER SUPERIOR (Efecto Glassmorphism) */}
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 z-10 sticky top-0">
+        {/* ---> ACTUALIZADO: AJUSTES DE ESPACIADO PARA MÓVILES (px-4 en lugar de px-8) <--- */}
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 md:px-8 z-10 sticky top-0 shrink-0">
           
-          {/* Buscador visual */}
-          <div className="flex items-center bg-slate-100 px-4 py-2 rounded-full w-64 border border-slate-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+          {/* ---> NUEVO: BOTÓN DE MENÚ HAMBURGUESA PARA MÓVILES <--- */}
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 mr-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors md:hidden"
+          >
+            <Menu size={24} />
+          </button>
+
+          {/* Buscador visual (Oculto en pantallas muy pequeñas) */}
+          <div className="hidden sm:flex items-center bg-slate-100 px-4 py-2 rounded-full w-48 md:w-64 border border-slate-200 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
             <Search size={16} className="text-slate-400" />
             <input 
               type="text" 
@@ -161,7 +204,10 @@ export default function DashboardLayout({ children }) {
             />
           </div>
 
-          <div className="flex items-center gap-6">
+          {/* Espaciador flexible para empujar iconos a la derecha en móviles si no hay buscador */}
+          <div className="flex-1 sm:hidden"></div>
+
+          <div className="flex items-center gap-4 md:gap-6">
             
             {/* CAMPANITA DE NOTIFICACIONES */}
             <div className="relative">
@@ -182,7 +228,7 @@ export default function DashboardLayout({ children }) {
               {isNotifMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsNotifMenuOpen(false)}></div>
-                  <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 transform origin-top-right transition-all">
+                  <div className="absolute right-0 md:right-auto mt-3 w-72 md:w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 transform origin-top-right transition-all">
                     <div className="px-4 py-3 border-b border-slate-50 flex justify-between items-center mb-1">
                       <p className="text-sm font-bold text-slate-800">Notificaciones</p>
                     </div>
@@ -216,22 +262,22 @@ export default function DashboardLayout({ children }) {
               )}
             </div>
             
-            <div className="h-8 w-px bg-slate-200"></div> {/* Divisor vertical */}
+            <div className="h-8 w-px bg-slate-200 hidden md:block"></div> {/* Divisor vertical (oculto en móvil) */}
 
             {/* PERFIL DE USUARIO CON MENÚ DESPLEGABLE */}
             <div className="relative">
               {/* Botón del perfil */}
               <div 
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors select-none"
+                className="flex items-center gap-2 md:gap-3 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors select-none"
               >
                 <div className="text-right hidden md:block">
-                  <p className="text-sm font-bold text-slate-700 leading-tight">
+                  <p className="text-sm font-bold text-slate-700 leading-tight truncate max-w-[120px]">
                     {localStorage.getItem('comercioNombre') || 'Comercio'}
                   </p>
                   <p className="text-xs text-slate-500 font-medium">Administrador</p>
                 </div>
-                <div className="h-10 w-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/30 uppercase border-2 border-white ring-2 ring-slate-100 transition-transform hover:scale-105">
+                <div className="h-8 w-8 md:h-10 md:w-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/30 uppercase border-2 border-white ring-2 ring-slate-100 transition-transform hover:scale-105 text-sm md:text-base">
                   {(localStorage.getItem('comercioNombre') || 'L').charAt(0)}
                 </div>
               </div>
@@ -244,9 +290,9 @@ export default function DashboardLayout({ children }) {
                     onClick={() => setIsProfileMenuOpen(false)}
                   ></div>
 
-                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 transform origin-top-right transition-all">
+                  <div className="absolute right-0 mt-3 w-48 md:w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 transform origin-top-right transition-all">
                     
-                    <div className="px-4 py-3 border-b border-slate-50 mb-2">
+                    <div className="px-4 py-3 border-b border-slate-50 mb-2 md:hidden">
                       <p className="text-sm font-bold text-slate-800 truncate">
                         {localStorage.getItem('comercioNombre') || 'Comercio'}
                       </p>
@@ -294,7 +340,8 @@ export default function DashboardLayout({ children }) {
         </header>
 
         {/* CONTENIDO INYECTADO (El Dashboard) */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F8FAFC] p-8">
+        {/* ---> ACTUALIZADO: ESPACIADO EN MÓVILES (p-4 en lugar de p-8) <--- */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F8FAFC] p-4 md:p-8">
           {children}
         </main>
         

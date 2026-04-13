@@ -12,7 +12,7 @@ export default function Transacciones() {
     const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch(`https://lumina-backend-3pu1.onrender.com/api/pagos/${comercioId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${comercioId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -36,7 +36,7 @@ export default function Transacciones() {
     const token = localStorage.getItem('token');
     
     try {
-      const response = await fetch(`https://lumina-backend-3pu1.onrender.com/api/pagos/${id}/estado`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${id}/estado`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

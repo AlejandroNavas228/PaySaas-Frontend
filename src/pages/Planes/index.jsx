@@ -7,30 +7,71 @@ export default function Planes() {
   const navigate = useNavigate();
   const [procesando, setProcesando] = useState(false);
 
-  const cambiarPlan = async (nuevoPlan) => {
-    setProcesando(true);
-    const toastId = toast.loading('Procesando tu suscripción...');
-    const token = localStorage.getItem('token');
-    const comercioId = localStorage.getItem('comercioId');
+  const cambiarPlan = async (nuevoPlan, precio) => {
+    // Si eligen el plan gratuito (Starter), lo actualizamos directo sin cobrar
+    if (nuevoPlan === 'starter') {
+        setProcesando(true);
+        const toastId = toast.loading('Activando plan gratuito...');
+        const token = localStorage.getItem('token');
+        const comercioId = localStorage.getItem('comercioId');
+        
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}/plan`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ plan: nuevoPlan })
+            });
+            
+            if (response.ok) {
+                toast.success('¡Plan Starter activado!', { id: toastId });
+                setTimeout(() => navigate('/dashboard'), 2000);
+            } else {
+                // 👇 ESTO FALTABA: Atrapar el error del backend
+                const errorData = await response.json().catch(() => ({}));
+                toast.error(errorData.error || 'Ruta no encontrada en el backend', { id: toastId });
+            }
+        } catch (e) { 
+            toast.error('Error de red al conectar', { id: toastId }); 
+        } finally { 
+            setProcesando(false); 
+        }
+        return;
+    }
 
+    // SI ELIGEN PRO O BUSINESS: Creamos un cobro hacia ti (Lumina Admin)
+    setProcesando(true);
+    const toastId = toast.loading('Generando orden de pago...');
+    
     try {
-      const response = await fetch(`https://lumina-backend-3pu1.onrender.com/api/comercio/${comercioId}/plan`, {
-        method: 'PUT',
+      // 1. Llamamos a nuestra propia pasarela para generar un link de cobro
+      const response = await fetch('${import.meta.env.VITE_API_URL}/api/checkout', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'x-api-key': 'zp_live_LUMINA_MASTER_KEY' // <--- La llave de tu "Caja Registradora"
         },
-        body: JSON.stringify({ plan: nuevoPlan })
+        body: JSON.stringify({
+          monto: precio,
+          moneda: "USD",
+          descripcion: `Suscripción Mensual - Plan ${nuevoPlan.toUpperCase()}`,
+          referenciaComercio: `SUB-${localStorage.getItem('comercioId')}-${Date.now()}`,
+          // Cuando paguen, los regresamos a su panel
+          urlExito: "http://localhost:5173/dashboard", 
+          urlCancelado: "http://localhost:5173/planes",
+        })
       });
 
-      if (response.ok) {
-        toast.success(`¡Bienvenido al plan ${nuevoPlan.toUpperCase()}!`, { id: toastId });
-        setTimeout(() => navigate('/configuracion'), 2000);
+      const data = await response.json();
+
+      if (response.ok && data.url_pago) {
+        toast.success('Redirigiendo a pasarela segura...', { id: toastId });
+        // 2. Redirigimos al usuario a la pantalla oscura de Lumina Checkout
+        window.location.href = data.url_pago; 
       } else {
-        toast.error('Hubo un problema al procesar.', { id: toastId });
+        toast.error('Error al generar la orden.', { id: toastId });
       }
     } catch (error) {
-        console.error(error);
+      console.error(error);
       toast.error('Error de conexión.', { id: toastId });
     } finally {
       setProcesando(false);
@@ -65,7 +106,7 @@ export default function Planes() {
               <li className="flex items-center gap-3"><Check size={20} className="text-green-400" /> <span className="text-sm">Pago Móvil (Verificación manual)</span></li>
             </ul>
             <button 
-              onClick={() => cambiarPlan('starter')} disabled={procesando}
+              onClick={() => cambiarPlan('starter', 0)} disabled={procesando}
               className="w-full py-3 rounded-xl font-bold text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors"
             >
               Elegir Starter
@@ -89,7 +130,7 @@ export default function Planes() {
               <li className="flex items-center gap-3"><Check size={20} className="text-blue-400" /> <span className="text-sm">Webhooks Automáticos</span></li>
             </ul>
             <button 
-              onClick={() => cambiarPlan('pro')} disabled={procesando}
+              onClick={() => cambiarPlan('pro', 15)} disabled={procesando}
               className="w-full py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-lg"
             >
               Comenzar con Pro
@@ -110,7 +151,7 @@ export default function Planes() {
               <li className="flex items-center gap-3"><Star size={20} className="text-purple-400" /> <span className="text-sm">Soporte Técnico Prioritario VIP</span></li>
             </ul>
             <button 
-              onClick={() => cambiarPlan('business')} disabled={procesando}
+              onClick={() => cambiarPlan('business', 30)} disabled={procesando}
               className="w-full py-3 rounded-xl font-bold text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors"
             >
               Elegir Business

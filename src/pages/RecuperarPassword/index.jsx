@@ -19,7 +19,7 @@ export default function RecuperarPassword() {
 
     setCargando(true);
     try {
-      const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/recuperar-password', {
+      const response = await fetch('${import.meta.env.VITE_API_URL}/api/recuperar-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -47,7 +47,7 @@ export default function RecuperarPassword() {
 
     setCargando(true);
     try {
-      const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/restablecer-password', {
+      const response = await fetch('${import.meta.env.VITE_API_URL}/api/restablecer-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, codigo, nuevaPassword })

@@ -25,7 +25,7 @@ export default function Verificacion() {
 
     setCargando(true);
     try {
-      const response = await fetch('https://lumina-backend-3pu1.onrender.com/api/verificar', {
+      const response = await fetch('${import.meta.env.VITE_API_URL}/api/verificar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, codigo })
