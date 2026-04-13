@@ -131,7 +131,7 @@ export default function Login() {
         <div>
           <div className="flex justify-center">
             {/* Como el fondo es blanco, le pasamos una clase para que el texto sea oscuro */}
-            <LogoLumina width={48} height={48} className="!text-gray-900 scale-125 mb-2" />
+            <LogoLumina width={48} height={48} textColor="text-slate-900" className="scale-125 mb-4" />
           </div>
           <p className="mt-2 text-center text-sm text-gray-600">
             Inicia sesión para gestionar tus cobros
