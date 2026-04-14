@@ -48,7 +48,7 @@ export default function Planes() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': 'zp_live_LUMINA_MASTER_KEY' // Tu llave maestra
+          'x-api-key': import.meta.env.VITE_LUMINA_ADMIN_KEY 
         },
         body: JSON.stringify({
           monto: precio,
