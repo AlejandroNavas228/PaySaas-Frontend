@@ -8,7 +8,7 @@ export default function Planes() {
   const [procesando, setProcesando] = useState(false);
 
   const cambiarPlan = async (nuevoPlan, precio) => {
-    // Si eligen el plan gratuito (Starter), lo actualizamos directo sin cobrar
+    // Si eligen el plan gratuito (Starter)
     if (nuevoPlan === 'starter') {
         setProcesando(true);
         const toastId = toast.loading('Activando plan gratuito...');
@@ -30,7 +30,7 @@ export default function Planes() {
                 toast.error(errorData.error || 'Ruta no encontrada en el backend', { id: toastId });
             }
         } catch (e) { 
-            console.error(e);
+          console.error(e);
             toast.error('Error de red al conectar', { id: toastId }); 
         } finally { 
             setProcesando(false); 
@@ -40,10 +40,10 @@ export default function Planes() {
 
     // SI ELIGEN PRO O BUSINESS: Creamos un cobro hacia ti (Lumina Admin)
     setProcesando(true);
-    const toastId = toast.loading('Generando orden de pago...');
+    const toastId = toast.loading('Generando orden de pago segura...');
     
     try {
-      // ✅ CORREGIDO: Usando backticks para que lea la variable de entorno
+      // Llamamos a nuestra propia pasarela usando TU llave maestra
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout`, {
         method: 'POST',
         headers: {
@@ -55,7 +55,7 @@ export default function Planes() {
           moneda: "USD",
           descripcion: `Suscripción Mensual - Plan ${nuevoPlan.toUpperCase()}`,
           referenciaComercio: `SUB-${localStorage.getItem('comercioId')}-${Date.now()}`,
-          // ✅ CORREGIDO: Usando window.location.origin para que funcione en Vercel y Localhost
+          // URL dinámicas: Funcionarán tanto en localhost como en tu dominio real .xyz
           urlExito: `${window.location.origin}/dashboard`, 
           urlCancelado: `${window.location.origin}/planes`,
         })
@@ -64,7 +64,7 @@ export default function Planes() {
       const data = await response.json();
 
       if (response.ok && data.url_pago) {
-        toast.success('Redirigiendo a pasarela segura...', { id: toastId });
+        toast.success('Redirigiendo a Lumina Checkout...', { id: toastId });
         // Redirigimos al usuario a la pantalla oscura de Lumina Checkout
         window.location.href = data.url_pago; 
       } else {

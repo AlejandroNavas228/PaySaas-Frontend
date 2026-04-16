@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Key, Webhook, Wallet, Save, Copy, CheckCircle2, ArrowLeft, Smartphone, DollarSign, CreditCard, Zap, Lock } from 'lucide-react';
+import { Wallet, Save, ArrowLeft, Smartphone, DollarSign, CreditCard, Zap, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Configuracion() {
@@ -10,9 +10,7 @@ export default function Configuracion() {
   const [esPro, setEsPro] = useState(false);
   
   // Estados Generales
-  const [apiKey, setApiKey] = useState('');
   const [webhook, setWebhook] = useState('');
-  const [copiado, setCopiado] = useState(false);
   const [planActual, setPlanActual] = useState('starter');
 
   // Estados de Métodos de Pago
@@ -42,8 +40,9 @@ export default function Configuracion() {
 
         if (response.ok) {
           const data = await response.json();
-          setApiKey(data.api_key || '');
+          // Guardamos el webhook en silencio para no borrarlo al actualizar otros datos
           setWebhook(data.url_webhook || '');
+          
           setWallet(data.wallet_usdt || '');
           setPmCedula(data.pago_movil_cedula || '');
           setPmBanco(data.pago_movil_banco || '');
@@ -54,7 +53,6 @@ export default function Configuracion() {
           
           const plan = data.plan_actual || 'starter';
           setPlanActual(plan);
-          // Lógica SaaS: Es Pro si su plan es pro o elite
           setEsPro(plan === 'pro' || plan === 'elite'); 
         }
       } catch (error) {
@@ -93,7 +91,7 @@ export default function Configuracion() {
       });
 
       if (response.ok) {
-        toast.success('¡Configuración guardada!');
+        toast.success('¡Configuración de pagos guardada!');
       } else {
         toast.error('Hubo un problema al guardar.');
       }
@@ -103,13 +101,6 @@ export default function Configuracion() {
     } finally {
       setGuardando(false);
     }
-  };
-
-  const copiarApiKey = () => {
-    navigator.clipboard.writeText(apiKey);
-    setCopiado(true);
-    toast.success('Llave copiada');
-    setTimeout(() => setCopiado(false), 2000);
   };
 
   if (cargando) return <div className="min-h-screen flex justify-center items-center bg-slate-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div></div>;
@@ -124,8 +115,8 @@ export default function Configuracion() {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Configuración</h1>
-            <p className="text-slate-500">Administra tus métodos de cobro y credenciales.</p>
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">Métodos de Cobro</h1>
+            <p className="text-slate-500">Administra las cuentas bancarias y billeteras donde recibirás tu dinero.</p>
           </div>
           <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-bold text-sm border border-blue-200">
             Plan Actual: <span className="uppercase">{planActual}</span>
@@ -170,10 +161,10 @@ export default function Configuracion() {
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 bg-[#FCD535]/10 text-[#FCD535] rounded-lg"><Wallet size={24} className="text-yellow-600" /></div>
                   <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    Cripto (USDT) {!esPro && <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded uppercase font-black">PRO</span>}
+                    Binance / USDT {!esPro && <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded uppercase font-black">PRO</span>}
                   </h2>
                 </div>
-                <p className="text-xs text-slate-500 mb-4">Recibe pagos directo a tu billetera Web3 o Binance.</p>
+                <p className="text-xs text-slate-500 mb-4">Recibe pagos directo a tu billetera Web3 o Binance (Red BSC/TRC20).</p>
                 <input type="text" placeholder="Ej: 0x1234abcd..." disabled={!esPro} value={wallet} onChange={(e) => setWallet(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 font-mono text-sm outline-none focus:border-blue-500 disabled:bg-slate-50" />
               </div>
             </div>
@@ -199,15 +190,6 @@ export default function Configuracion() {
                 <p className="text-xs text-slate-500 mb-4">Ingresa tu Client ID de PayPal Developer.</p>
                 <input type="text" placeholder="Client ID" disabled={!esPro} value={paypalId} onChange={(e) => setPaypalId(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500 disabled:bg-slate-50" />
               </div>
-            </div>
-
-            {/* ZELLE (GRATIS) */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-purple-50 text-purple-600 rounded-lg"><DollarSign size={24} /></div>
-                <h2 className="text-lg font-bold text-slate-800">Zelle</h2>
-              </div>
-              <input type="email" placeholder="correo@zelle.com" value={zelleEmail} onChange={(e) => setZelleEmail(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500" />
             </div>
 
             {/* ZINLI (GRATIS) */}
@@ -237,40 +219,13 @@ export default function Configuracion() {
               </div>
             </div>
 
-            {/* API KEY (GRATIS) */}
+            {/* ZELLE (GRATIS) */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-slate-100 text-slate-600 rounded-lg"><Key size={24} /></div>
-                <h2 className="text-lg font-bold text-slate-800">API Key</h2>
+                <div className="p-2 bg-purple-50 text-purple-600 rounded-lg"><DollarSign size={24} /></div>
+                <h2 className="text-lg font-bold text-slate-800">Zelle</h2>
               </div>
-              <div className="flex gap-2">
-                <input type="password" value={apiKey} readOnly className="flex-1 bg-slate-100 border-none rounded-xl px-4 py-2 text-slate-700 font-mono text-sm focus:ring-0" />
-                <button onClick={copiarApiKey} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-xl transition-colors">
-                  {copiado ? <CheckCircle2 size={16} className="text-green-400" /> : <Copy size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {/* WEBHOOK (BLOQUEADO SI ES STARTER) */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
-               {!esPro && (
-                <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center">
-                  <div className="bg-white p-4 rounded-2xl shadow-lg border border-slate-100 text-center max-w-[200px]">
-                    <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-2"><Lock size={16} /></div>
-                    <h4 className="font-bold text-slate-800 text-sm mb-1">Función Premium</h4>
-                    <Link to="/planes" className="text-blue-600 font-bold text-xs hover:underline">Mejorar plan</Link>
-                  </div>
-                </div>
-              )}
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-slate-100 text-slate-600 rounded-lg"><Webhook size={24} /></div>
-                  <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    Webhook URL {!esPro && <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded uppercase font-black">PRO</span>}
-                  </h2>
-                </div>
-                <input type="url" placeholder="https://tutienda.com/api/webhook" disabled={!esPro} value={webhook} onChange={(e) => setWebhook(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500 disabled:bg-slate-50" />
-              </div>
+              <input type="email" placeholder="correo@zelle.com" value={zelleEmail} onChange={(e) => setZelleEmail(e.target.value)} className="w-full border border-slate-200 rounded-xl px-4 py-2 text-slate-700 text-sm outline-none focus:border-blue-500" />
             </div>
 
           </div>
