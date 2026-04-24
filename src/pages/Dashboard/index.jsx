@@ -1,7 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Clock, ArrowUpRight, Activity, CreditCard, Loader2, Link as LinkIcon, Code } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
+import TransactionsTable from '../../components/ui/TransactionsTable'; // Asegúrate de tener este import
+
+// ---> 1. SKELETON LOADER (Adaptado a tu diseño claro) <---
+const DashboardSkeleton = () => (
+  <div className="max-w-6xl mx-auto pb-10 space-y-8 animate-pulse">
+    <div className="w-1/3 h-10 bg-slate-200 rounded-lg mb-2"></div>
+    <div className="w-1/4 h-4 bg-slate-200 rounded-lg mb-8"></div>
+    
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="h-32 bg-slate-200 rounded-2xl"></div>
+      <div className="h-32 bg-slate-200 rounded-2xl"></div>
+      <div className="h-32 bg-slate-200 rounded-2xl"></div>
+    </div>
+    
+    <div className="h-64 bg-slate-200 rounded-2xl"></div>
+    <div className="h-80 bg-slate-200 rounded-2xl"></div>
+  </div>
+);
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -13,7 +31,7 @@ export default function Dashboard() {
     totalVentas: 0
   });
 
-  // ---> ESTADOS DEL GENERADOR DE LINKS <---
+  // Estados del generador de links
   const [linkMonto, setLinkMonto] = useState('');
   const [linkConcepto, setLinkConcepto] = useState('');
   const [linkGenerado, setLinkGenerado] = useState('');
@@ -38,9 +56,8 @@ export default function Dashboard() {
         
         if (response.ok) {
           const data = await response.json();
-          setTransacciones(data.slice(0, 5)); // Solo mostramos las 5 más recientes
+          setTransacciones(data); 
           
-          // Calculamos las métricas
           let ingresosTotales = 0;
           let pagosPendientes = 0;
 
@@ -59,14 +76,13 @@ export default function Dashboard() {
         console.error(error);
         toast.error('Error al cargar el dashboard');
       } finally {
-        setCargando(false);
+        setTimeout(() => setCargando(false), 500); // Pequeño delay para ver el Skeleton
       }
     };
 
     cargarDatos();
   }, [navigate]);
 
-  // ---> FUNCIONES DEL GENERADOR DE LINKS <---
   const generarLinkRapido = async () => {
     if (!linkMonto || !linkConcepto) return toast.error('Llena el monto y el concepto');
     setGenerandoLink(true);
@@ -74,7 +90,10 @@ export default function Dashboard() {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': localStorage.getItem('apiKey') // Añadido para la seguridad del backend
+        },
         body: JSON.stringify({
           monto: parseFloat(linkMonto),
           descripcion: linkConcepto,
@@ -102,10 +121,12 @@ export default function Dashboard() {
     toast.success('¡Copiado!');
   };
 
-  if (cargando) return <div className="h-full flex justify-center items-center"><Loader2 className="animate-spin text-blue-500" size={48} /></div>;
+  // ---> 2. USO DEL SKELETON <---
+  if (cargando) return <DashboardSkeleton />;
 
   return (
     <div className="max-w-6xl mx-auto pb-10">
+      <Toaster position="top-right" />
       
       {/* Saludo */}
       <div className="mb-8 flex justify-between items-end">
@@ -120,7 +141,6 @@ export default function Dashboard() {
 
       {/* Tarjetas de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Ingresos Totales */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group">
           <div className="absolute -right-6 -top-6 w-24 h-24 bg-green-50 rounded-full group-hover:scale-110 transition-transform"></div>
           <div className="relative z-10 flex justify-between items-start mb-4">
@@ -131,7 +151,6 @@ export default function Dashboard() {
           <h2 className="text-3xl font-bold text-slate-800 relative z-10">${metricas.ingresos}</h2>
         </div>
 
-        {/* Pagos Pendientes (Llamado a la acción) */}
         <div className={`p-6 rounded-2xl shadow-sm border transition-colors ${metricas.pendientes > 0 ? 'bg-orange-50 border-orange-200' : 'bg-white border-slate-200'}`}>
           <div className="flex justify-between items-start mb-4">
             <div className={`p-3 rounded-xl ${metricas.pendientes > 0 ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600'}`}><Clock size={24} /></div>
@@ -139,15 +158,9 @@ export default function Dashboard() {
           <p className={`text-sm font-medium mb-1 ${metricas.pendientes > 0 ? 'text-orange-600' : 'text-slate-500'}`}>Pagos por Revisar</p>
           <div className="flex items-end justify-between">
             <h2 className={`text-3xl font-bold ${metricas.pendientes > 0 ? 'text-orange-700' : 'text-slate-800'}`}>{metricas.pendientes}</h2>
-            {metricas.pendientes > 0 && (
-              <button onClick={() => navigate('/transacciones')} className="text-xs font-bold bg-orange-600 text-white px-3 py-1.5 rounded-lg hover:bg-orange-700 transition-colors">
-                Revisar
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Total de Ventas */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><Activity size={24} /></div>
@@ -157,7 +170,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ---> NUEVA SECCIÓN: GENERADOR DE LINKS <--- */}
+      {/* ---> TU GENERADOR DE LINKS INTACTO <--- */}
       <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><LinkIcon size={20} /></div>
@@ -191,10 +204,8 @@ export default function Dashboard() {
           {generandoLink ? <Loader2 className="animate-spin" size={18} /> : 'Generar Link de Pago'}
         </button>
 
-        {/* Resultados del Generador */}
         {linkGenerado && (
           <div className="mt-6 pt-6 border-t border-slate-100 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {/* Opción 1: Link Directo */}
             <div className="bg-slate-50 p-4 md:p-5 rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-3">
                 <LinkIcon size={16} className="text-slate-400" />
@@ -206,7 +217,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Opción 2: Botón HTML */}
             <div className="bg-slate-50 p-4 md:p-5 rounded-xl border border-slate-200">
               <div className="flex items-center gap-2 mb-3">
                 <Code size={16} className="text-slate-400" />
@@ -225,37 +235,13 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Actividad Reciente */}
+      {/* ---> 3. NUEVA TABLA DE TRANSACCIONES INTEGRADAS <--- */}
       <h3 className="text-lg font-bold text-slate-800 mb-4">Actividad Reciente</h3>
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        {transacciones.length === 0 ? (
-          <div className="p-10 text-center text-slate-400">
-            <CreditCard size={48} className="mx-auto mb-3 opacity-50" />
-            <p>Aún no tienes ventas registradas.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {transacciones.map(tx => (
-              <div key={tx.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className={`p-2 rounded-full ${tx.estado === 'aprobado' ? 'bg-green-100 text-green-600' : tx.estado === 'en_revision' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600'}`}>
-                    <DollarSign size={20} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800">{tx.descripcion || 'Cobro de producto'}</p>
-                    <p className="text-xs text-slate-400">{new Date(tx.fecha).toLocaleString()}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-slate-800">${tx.monto}</p>
-                  <p className={`text-xs font-bold capitalize ${tx.estado === 'aprobado' ? 'text-green-600' : tx.estado === 'en_revision' ? 'text-orange-600' : 'text-slate-500'}`}>
-                    {tx.estado.replace('_', ' ')}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <TransactionsTable 
+          transacciones={transacciones.slice(0, 5)} // Solo mostramos 5 aquí
+          setTransacciones={setTransacciones} 
+        />
       </div>
 
     </div>
