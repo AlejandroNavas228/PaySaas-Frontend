@@ -10,8 +10,9 @@ export default function TransactionsTable({ transacciones, setTransacciones }) {
     const toastId = toast.loading(`Cambiando estado a ${nuevoEstado}...`);
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/transaccion/${id}/estado`, {
-        method: 'PATCH',
+      // 💡 CORRECCIÓN AQUÍ: Usamos /api/pagos/ y el método PUT, exactamente como está en tu backend
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${id}/estado`, {
+        method: 'PUT', 
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
