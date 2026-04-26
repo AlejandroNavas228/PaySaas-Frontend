@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Globe, Wallet, Smartphone, Mail, CreditCard, MessageSquare, Send, Info, Loader2, SendHorizontal } from 'lucide-react';
+import { Save, Wallet, Smartphone, Mail, Send, Loader2, SendHorizontal, Landmark, CreditCard, Info } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function Configuracion() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [config, setConfig] = useState({
-    url_webhook: '',
     wallet_usdt: '',
     pago_movil_cedula: '',
     pago_movil_banco: '',
@@ -14,7 +13,7 @@ export default function Configuracion() {
     zelle_email: '',
     zinli_email: '',
     paypal_client_id: '',
-    telegram_chat_id: '' // 📱 Nuevo campo
+    telegram_chat_id: ''
   });
 
   useEffect(() => {
@@ -60,130 +59,120 @@ export default function Configuracion() {
       });
 
       if (res.ok) {
-        toast.success("¡Configuración actualizada con éxito! 🚀");
+        toast.success("¡Configuración guardada! 🚀");
       } else {
-        toast.error("Error al guardar los cambios");
+        toast.error("Error al guardar");
       }
     } catch (error) {
-      console.error("Error al guardar configuración:", error);  
+      console.error("Error de red:", error);
       toast.error("Error de conexión");
     } finally {
       setGuardando(false);
     }
   };
 
-  if (cargando) return <div className="p-10 text-center text-slate-500 animate-pulse">Cargando tus ajustes...</div>;
+  if (cargando) return <div className="p-10 text-center text-slate-500 animate-pulse font-bold">Cargando tus ajustes...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto pb-20">
+    <div className="max-w-5xl mx-auto pb-32">
       <Toaster position="top-right" />
       
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Configuración</h1>
-        <p className="text-slate-500">Gestiona tus métodos de pago y canales de notificación.</p>
+      <div className="mb-10">
+        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Ajustes de Cobro</h1>
+        <p className="text-slate-500 font-medium">Configura dónde quieres recibir el dinero de tus ventas.</p>
       </div>
 
       <form onSubmit={handleGuardar} className="space-y-8">
         
-        {/* 1. SECCIÓN DE NOTIFICACIONES (TELEGRAM) */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+        {/* SECCIÓN TELEGRAM */}
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-200">
               <Send size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-800">Notificaciones Instantáneas</h2>
-              <p className="text-sm text-slate-500">Recibe un aviso en tu celular cada vez que apruebes un pago.</p>
+              <h2 className="text-xl font-bold text-slate-800">Notificaciones</h2>
+              <p className="text-sm text-slate-500">Recibe alertas en tiempo real en tu celular.</p>
             </div>
           </div>
-
-          <div className="bg-slate-50 rounded-2xl p-6 border border-blue-100 mb-6">
-            <div className="flex items-start gap-4">
-              <div className="bg-blue-600 text-white p-2 rounded-lg mt-1">
-                <MessageSquare size={20} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-slate-800 mb-2">¿Cómo conectar tu Telegram?</p>
-                <ol className="text-xs text-slate-600 space-y-2 list-decimal ml-4 leading-relaxed">
-                  <li>Busca en Telegram el bot: <span className="font-bold text-blue-600">@userinfobot</span> e inícialo.</li>
-                  <li>Copia el número que te da (tu <b>Id</b>).</li>
-                  <li>Pégalo en el recuadro de abajo y guarda los cambios.</li>
-                  <li>¡Listo! Ahora busca tu bot de Lumina e inícialo para recibir los mensajes.</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest">Tu Telegram Chat ID</label>
-            <div className="relative group">
+          
+          <div className="flex flex-col md:flex-row gap-6 items-center bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <div className="flex-1">
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Tu ID de Telegram</label>
               <input 
                 type="text" name="telegram_chat_id" value={config.telegram_chat_id || ''} onChange={handleChange}
                 placeholder="Ej: 582910392"
-                className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all font-mono"
+                className="w-full bg-white border border-slate-200 rounded-xl px-5 py-3 outline-none focus:border-blue-500 font-mono"
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors">
-                <SendHorizontal size={20} />
-              </div>
+            </div>
+            <div className="text-xs text-slate-500 max-w-xs">
+              <p className="font-bold text-blue-600 flex items-center gap-1 mb-1"><Info size={14}/> ¿Cómo obtenerlo?</p>
+              Escribe <b>/id</b> al bot <span className="font-bold">@userinfobot</span> en Telegram y pega el número aquí.
             </div>
           </div>
         </div>
 
-        {/* 2. MÉTODOS DE PAGO (PAGO MÓVIL, ZELLE, ETC.) */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Wallet className="text-slate-400" size={20} /> Métodos de Recepción
-          </h3>
+        {/* MÉTODOS DE PAGO VISUALES */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Pago Móvil */}
-            <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-tighter">Pago Móvil (Venezuela)</p>
-              <input type="text" name="pago_movil_banco" placeholder="Banco" value={config.pago_movil_banco || ''} onChange={handleChange} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500" />
-              <input type="text" name="pago_movil_cedula" placeholder="Cédula / RIF" value={config.pago_movil_cedula || ''} onChange={handleChange} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500" />
-              <input type="text" name="pago_movil_tel" placeholder="Teléfono" value={config.pago_movil_tel || ''} onChange={handleChange} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-500" />
+          {/* PAGO MÓVIL */}
+          <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:border-green-200 transition-colors">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-green-100 text-green-600 rounded-lg"><Smartphone size={20}/></div>
+              <h3 className="font-bold text-slate-800">Pago Móvil</h3>
             </div>
-
-            {/* Zelle & Zinli */}
-            <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-tighter">Dólares Electrónicos</p>
-              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1">
-                <Mail size={16} className="text-slate-300" />
-                <input type="text" name="zelle_email" placeholder="Correo Zelle" value={config.zelle_email || ''} onChange={handleChange} className="w-full py-1.5 text-sm outline-none bg-transparent" />
+            <div className="space-y-4">
+              <div className="relative">
+                <input type="text" name="pago_movil_banco" placeholder="Nombre del Banco" value={config.pago_movil_banco || ''} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-100" />
+                <Landmark className="absolute right-4 top-3 text-slate-300" size={18}/>
               </div>
-              <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1">
-                <Mail size={16} className="text-slate-300" />
-                <input type="text" name="zinli_email" placeholder="Correo Zinli" value={config.zinli_email || ''} onChange={handleChange} className="w-full py-1.5 text-sm outline-none bg-transparent" />
+              <input type="text" name="pago_movil_cedula" placeholder="Cédula o RIF" value={config.pago_movil_cedula || ''} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-100" />
+              <input type="text" name="pago_movil_tel" placeholder="Número de Teléfono" value={config.pago_movil_tel || ''} onChange={handleChange} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-green-100" />
+            </div>
+          </div>
+
+          {/* PAYPAL */}
+          <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 hover:border-blue-200 transition-colors">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><CreditCard size={20}/></div>
+              <h3 className="font-bold text-slate-800">PayPal (Tarjetas)</h3>
+            </div>
+            <div className="space-y-4">
+              <p className="text-[10px] text-slate-400 font-bold uppercase leading-tight">Client ID de tu App de PayPal Developer</p>
+              <textarea name="paypal_client_id" placeholder="Pega aquí tu Client ID de PayPal" value={config.paypal_client_id || ''} onChange={handleChange} className="w-full h-24 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 font-mono resize-none" />
+            </div>
+          </div>
+
+          {/* ZELLE & ZINLI */}
+          <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 md:col-span-2">
+            <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">Billeteras Digitales</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-bold">Z</div>
+                <input type="text" name="zelle_email" placeholder="Correo de Zelle" value={config.zelle_email || ''} onChange={handleChange} className="bg-transparent flex-1 outline-none text-sm font-medium" />
+              </div>
+              <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold">Zi</div>
+                <input type="text" name="zinli_email" placeholder="Correo de Zinli" value={config.zinli_email || ''} onChange={handleChange} className="bg-transparent flex-1 outline-none text-sm font-medium" />
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 3. DESARROLLADORES Y WEBHOOKS */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Globe className="text-slate-400" size={20} /> Integración Técnica
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2">URL del Webhook (Solo Plan Business)</label>
-              <input type="text" name="url_webhook" placeholder="https://tutienda.com/api/webhook" value={config.url_webhook || ''} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Wallet USDT (Red BSC)</label>
-              <input type="text" name="wallet_usdt" placeholder="0x..." value={config.wallet_usdt || ''} onChange={handleChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-500 font-mono" />
-            </div>
+          {/* CRIPTO */}
+          <div className="bg-slate-900 rounded-3xl p-8 shadow-xl md:col-span-2 text-white">
+            <h3 className="font-bold mb-4 flex items-center gap-2">Wallet USDT (Binance / Web3)</h3>
+            <input type="text" name="wallet_usdt" placeholder="0x..." value={config.wallet_usdt || ''} onChange={handleChange} className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:bg-white/20 font-mono placeholder:text-slate-500" />
           </div>
+
         </div>
 
-        {/* BOTÓN FLOTANTE DE GUARDAR */}
-        <div className="fixed bottom-8 right-8 z-50">
+        <div className="fixed bottom-8 right-8">
           <button 
             type="submit" disabled={guardando}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-2xl shadow-2xl shadow-blue-500/40 flex items-center gap-3 transition-all active:scale-95 disabled:opacity-50"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-2xl shadow-2xl shadow-blue-500/40 flex items-center gap-3 transition-all active:scale-95 disabled:opacity-50"
           >
             {guardando ? <Loader2 className="animate-spin" size={24} /> : <Save size={24} />}
-            {guardando ? 'Guardando...' : 'Guardar Cambios'}
+            {guardando ? 'Guardando...' : 'Guardar Todo'}
           </button>
         </div>
 
