@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Globe, Wallet, Smartphone, Mail, CreditCard, MessageSquare, Send, info, Loader2, SendHorizontal } from 'lucide-react';
+import { Save, Globe, Wallet, Smartphone, Mail, CreditCard, MessageSquare, Send, Info, Loader2, SendHorizontal } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function Configuracion() {
