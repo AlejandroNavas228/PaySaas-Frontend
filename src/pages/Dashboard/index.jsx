@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Clock, ArrowUpRight, Activity, CreditCard, Loader2, Link as LinkIcon, Code } from 'lucide-react';
+import { DollarSign, Clock, ArrowUpRight, Activity, Loader2, Link as LinkIcon, Code, Rocket, Star, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import TransactionsTable from '../../components/ui/TransactionsTable'; // Asegúrate de tener este import
+import TransactionsTable from '../../components/ui/TransactionsTable';
 
-// ---> 1. SKELETON LOADER (Adaptado a tu diseño claro) <---
 const DashboardSkeleton = () => (
   <div className="max-w-6xl mx-auto pb-10 space-y-8 animate-pulse">
     <div className="w-1/3 h-10 bg-slate-200 rounded-lg mb-2"></div>
-    <div className="w-1/4 h-4 bg-slate-200 rounded-lg mb-8"></div>
+    <div className="w-full h-20 bg-slate-200 rounded-2xl mb-8"></div>
     
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div className="h-32 bg-slate-200 rounded-2xl"></div>
@@ -17,27 +16,74 @@ const DashboardSkeleton = () => (
     </div>
     
     <div className="h-64 bg-slate-200 rounded-2xl"></div>
-    <div className="h-80 bg-slate-200 rounded-2xl"></div>
   </div>
 );
+
+// 👑 NUEVO COMPONENTE: El Banner de Celebración
+const BannerPremium = ({ plan }) => {
+  if (!plan || plan === 'starter') return null; // Si es starter, no mostramos banner premium
+
+  if (plan === 'business') {
+    return (
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 rounded-2xl mb-8 shadow-lg shadow-purple-500/20 border border-purple-400/30 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="flex items-center gap-4">
+          <div className="bg-white/20 p-3 rounded-xl backdrop-blur-md">
+            <Rocket className="text-white" size={32} />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              ¡Felicidades! Tu Plan BUSINESS está activo <ShieldCheck size={18} className="text-purple-200"/>
+            </h3>
+            <p className="text-purple-100 text-sm mt-1">Tu cuenta está operando al máximo nivel con todos los beneficios y sin límites.</p>
+          </div>
+        </div>
+        <span className="bg-white text-purple-700 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm whitespace-nowrap">
+          Cuenta Élite
+        </span>
+      </div>
+    );
+  }
+
+  if (plan === 'pro') {
+    return (
+      <div className="bg-gradient-to-r from-yellow-500 to-amber-500 p-6 rounded-2xl mb-8 shadow-lg shadow-yellow-500/20 border border-yellow-400/30 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="flex items-center gap-4">
+          <div className="bg-white/20 p-3 rounded-xl backdrop-blur-md">
+            <Star className="text-white" size={32} />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+              ¡Excelente! Tu Plan PRO está activo
+            </h3>
+            <p className="text-yellow-50 text-sm mt-1">Has desbloqueado las funciones profesionales para tu negocio.</p>
+          </div>
+        </div>
+        <span className="bg-white text-amber-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-sm whitespace-nowrap">
+          Cuenta PRO
+        </span>
+      </div>
+    );
+  }
+
+  return null;
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
   const [transacciones, setTransacciones] = useState([]);
+  const [comercio, setComercio] = useState(null); // Añadimos estado para guardar los datos del comercio
+  
   const [metricas, setMetricas] = useState({
     ingresos: 0,
     pendientes: 0,
     totalVentas: 0
   });
 
-  // Estados del generador de links
   const [linkMonto, setLinkMonto] = useState('');
   const [linkConcepto, setLinkConcepto] = useState('');
   const [linkGenerado, setLinkGenerado] = useState('');
   const [generandoLink, setGenerandoLink] = useState(false);
-
-  const nombreComercio = localStorage.getItem('comercioNombre') || 'Comercio';
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -50,18 +96,23 @@ export default function Dashboard() {
       }
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${comercioId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        // 💡 Hacemos DOS llamadas: Una para los pagos y otra para ver qué plan tiene el usuario HOY
+        const [resPagos, resComercio] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${comercioId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
         
-        if (response.ok) {
-          const data = await response.json();
-          setTransacciones(data); 
+        if (resPagos.ok && resComercio.ok) {
+          const dataPagos = await resPagos.json();
+          const dataComercio = await resComercio.json();
+          
+          setTransacciones(dataPagos); 
+          setComercio(dataComercio); // Guardamos el plan actualizado
           
           let ingresosTotales = 0;
           let pagosPendientes = 0;
 
-          data.forEach(tx => {
+          dataPagos.forEach(tx => {
             if (tx.estado === 'aprobado') ingresosTotales += parseFloat(tx.monto);
             if (tx.estado === 'en_revision' || tx.estado === 'pendiente') pagosPendientes++;
           });
@@ -69,14 +120,14 @@ export default function Dashboard() {
           setMetricas({
             ingresos: ingresosTotales.toFixed(2),
             pendientes: pagosPendientes,
-            totalVentas: data.filter(tx => tx.estado === 'aprobado').length
+            totalVentas: dataPagos.filter(tx => tx.estado === 'aprobado').length
           });
         }
       } catch (error) {
-        console.error(error);
-        toast.error('Error al cargar el dashboard');
+        console.error('Error al cargar datos:', error);
+        toast.error('Error al sincronizar con el servidor');
       } finally {
-        setTimeout(() => setCargando(false), 500); // Pequeño delay para ver el Skeleton
+        setTimeout(() => setCargando(false), 600);
       }
     };
 
@@ -92,7 +143,7 @@ export default function Dashboard() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-api-key': localStorage.getItem('apiKey') // Añadido para la seguridad del backend
+          'x-api-key': localStorage.getItem('apiKey') 
         },
         body: JSON.stringify({
           monto: parseFloat(linkMonto),
@@ -109,7 +160,7 @@ export default function Dashboard() {
         toast.error(data.error || 'Error al generar el link');
       }
     } catch (error) {
-      console.error(error);
+      console.error('Error de red:', error);
       toast.error('Error de red');
     } finally {
       setGenerandoLink(false);
@@ -121,23 +172,21 @@ export default function Dashboard() {
     toast.success('¡Copiado!');
   };
 
-  // ---> 2. USO DEL SKELETON <---
   if (cargando) return <DashboardSkeleton />;
 
   return (
     <div className="max-w-6xl mx-auto pb-10">
       <Toaster position="top-right" />
       
-      {/* Saludo */}
       <div className="mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-1">¡Hola, {nombreComercio}! 👋</h1>
+          <h1 className="text-3xl font-bold text-slate-800 mb-1">¡Hola, {comercio?.nombre || 'Comercio'}! 👋</h1>
           <p className="text-slate-500">Aquí tienes un resumen de tu negocio el día de hoy.</p>
         </div>
-        <button onClick={() => navigate('/transacciones')} className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition-colors shadow-sm hidden sm:block">
-          Ver reporte completo
-        </button>
       </div>
+
+      {/* 🚀 AQUÍ SE INYECTA EL BANNER MÁGICAMENTE SI EL PLAN ES PRO O BUSINESS */}
+      <BannerPremium plan={comercio?.plan_actual} />
 
       {/* Tarjetas de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -170,7 +219,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ---> TU GENERADOR DE LINKS INTACTO <--- */}
+      {/* Generador de Links */}
       <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><LinkIcon size={20} /></div>
@@ -207,41 +256,19 @@ export default function Dashboard() {
         {linkGenerado && (
           <div className="mt-6 pt-6 border-t border-slate-100 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
             <div className="bg-slate-50 p-4 md:p-5 rounded-xl border border-slate-200">
-              <div className="flex items-center gap-2 mb-3">
-                <LinkIcon size={16} className="text-slate-400" />
-                <p className="text-sm font-bold text-slate-700">Link directo (WhatsApp, Instagram, etc.)</p>
-              </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input type="text" readOnly value={linkGenerado} className="flex-1 text-sm bg-white border border-slate-200 rounded-lg px-4 py-2.5 outline-none text-blue-600 font-medium" />
                 <button onClick={() => copiarAlPortapapeles(linkGenerado)} className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2.5 rounded-lg font-bold text-sm transition-colors whitespace-nowrap">Copiar Link</button>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-4 md:p-5 rounded-xl border border-slate-200">
-              <div className="flex items-center gap-2 mb-3">
-                <Code size={16} className="text-slate-400" />
-                <p className="text-sm font-bold text-slate-700">Botón HTML (Para páginas web)</p>
-              </div>
-              <div className="relative">
-                <textarea 
-                  readOnly 
-                  value={`<a href="${linkGenerado}" target="_blank" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-family: sans-serif; display: inline-block;">Pagar $${linkMonto} con Lumina</a>`} 
-                  className="w-full h-24 text-xs bg-slate-900 text-emerald-400 font-mono p-4 rounded-lg outline-none resize-none leading-relaxed" 
-                />
-                <button onClick={() => copiarAlPortapapeles(`<a href="${linkGenerado}" target="_blank" style="background-color: #2563EB; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-family: sans-serif; display: inline-block;">Pagar $${linkMonto} con Lumina</a>`)} className="absolute top-3 right-3 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-md text-xs font-bold transition-colors backdrop-blur-sm">Copiar Código</button>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* ---> 3. NUEVA TABLA DE TRANSACCIONES INTEGRADAS <--- */}
+      {/* Tabla de Transacciones */}
       <h3 className="text-lg font-bold text-slate-800 mb-4">Actividad Reciente</h3>
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <TransactionsTable 
-          transacciones={transacciones.slice(0, 5)} // Solo mostramos 5 aquí
-          setTransacciones={setTransacciones} 
-        />
+        <TransactionsTable transacciones={transacciones.slice(0, 5)} setTransacciones={setTransacciones} />
       </div>
 
     </div>
