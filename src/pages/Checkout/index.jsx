@@ -189,16 +189,29 @@ export default function Checkout() {
                           });
                         }}
                         onApprove={async (data, actions) => {
-                          setProcesando(true);
-                          try {
-                            await actions.order.capture();
+                        setProcesando(true);
+                        try {
+                          await actions.order.capture();
+                          
+                          // 💡 AHORA SÍ LE AVISAMOS AL BACKEND
+                          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout/${id}/confirmar`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                              metodo: 'PayPal', 
+                              referencia: data.orderID 
+                            })
+                          });
+
+                          if (res.ok) {
                             setReferenciaManual(data.orderID);
                             setPagoExitoso(true);
-                          } catch (err) {
-                            console.error("Error al capturar el pago:", err);
-                            toast.error("Error al procesar el pago");
-                          } finally { setProcesando(false); }
-                        }}
+                          }
+                        } catch (err) {
+                          console.error("Error al procesar pago PayPal:", err);
+                          toast.error("Error al procesar con el servidor");
+                        } finally { setProcesando(false); }
+                      }}
                       />
                     </PayPalScriptProvider>
                   ) : (
