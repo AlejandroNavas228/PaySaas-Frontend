@@ -21,21 +21,27 @@ export default function Checkout() {
   const [referenciaManual, setReferenciaManual] = useState('');
   const [pagoExitoso, setPagoExitoso] = useState(false);
 
-  useEffect(() => {
+ useEffect(() => {
     const obtenerDatos = async () => {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout/${id}`);
         const data = await res.json();
         
         if (res.ok) {
-          setTransaccion(data.transaccion);
-          setComercio(data.comercio);
+          // 💡 EL TRUCO ESTÁ AQUÍ: 
+          // Atrapamos los datos sin importar si el backend los llama "transaccion", "pago", o los envía directos.
+          const datosTransaccion = data.transaccion || data.pago || data;
+          
+          setTransaccion(datosTransaccion);
+          
+          // Y nos aseguramos de atrapar el comercio de la misma forma
+          setComercio(data.comercio || datosTransaccion.comercio);
         } else {
           toast.error("Enlace de pago no válido");
         }
       } catch (error) {
-        toast.error("Error al conectar con el servidor");
         console.error("Error al conectar con el servidor:", error);
+        toast.error("Error al conectar con el servidor");
       } finally {
         setCargando(false);
       }
