@@ -152,7 +152,7 @@ export default function Checkout() {
                 />
                 <MetodoCard 
                   titulo="PayPal / Tarjetas" sub="Crédito o Débito Internacional" 
-                  icon={<creditCard className="text-blue-600"/>} 
+                  icon={<CreditCard className="text-blue-600"/>} 
                   onClick={() => setMetodoSeleccionado('PayPal')}
                 />
                 <MetodoCard 
