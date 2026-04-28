@@ -196,34 +196,40 @@ export default function Checkout() {
                       <PayPalButtons 
                         style={{ layout: "vertical", shape: "rect", color: "blue" }}
                         createOrder={(data, actions) => {
+                          // 💡 CORRECCIÓN: Forzamos 2 decimales y especificamos USD
+                          const montoFormateado = Number(transaccion.monto).toFixed(2);
                           return actions.order.create({
-                            purchase_units: [{ amount: { value: transaccion.monto.toString() } }]
+                            purchase_units: [{ 
+                              amount: { 
+                                value: montoFormateado,
+                                currency_code: 'USD'
+                              } 
+                            }]
                           });
                         }}
                         onApprove={async (data, actions) => {
-                        setProcesando(true);
-                        try {
-                          await actions.order.capture();
-                          
-                          // 💡 AHORA SÍ LE AVISAMOS AL BACKEND
-                          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout/${id}/confirmar`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                              metodo: 'PayPal', 
-                              referencia: data.orderID 
-                            })
-                          });
+                          setProcesando(true);
+                          try {
+                            await actions.order.capture();
+                            
+                            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout/${id}/confirmar`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ 
+                                metodo: 'PayPal', 
+                                referencia: data.orderID 
+                              })
+                            });
 
-                          if (res.ok) {
-                            setReferenciaManual(data.orderID);
-                            setPagoExitoso(true);
-                          }
-                        } catch (err) {
-                          console.error("Error al procesar pago PayPal:", err);
-                          toast.error("Error al procesar con el servidor");
-                        } finally { setProcesando(false); }
-                      }}
+                            if (res.ok) {
+                              setReferenciaManual(data.orderID);
+                              setPagoExitoso(true);
+                            }
+                          } catch (err) {
+                            console.error("Error al procesar el pago:", err);
+                            toast.error("Error al procesar con el servidor");
+                          } finally { setProcesando(false); }
+                        }}
                       />
                     </PayPalScriptProvider>
                   ) : (
