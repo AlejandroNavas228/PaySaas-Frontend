@@ -92,7 +92,19 @@ export default function Checkout() {
         <div className="bg-slate-50 rounded-2xl p-4 mb-8 text-sm text-slate-600 font-medium">
           Referencia: <span className="font-mono text-slate-900">{referenciaManual || 'PayPal/Web3'}</span>
         </div>
-        <button onClick={() => window.close()} className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl">Cerrar Ventana</button>
+       <button 
+          onClick={() => {
+            if (transaccion.urlExito) {
+              window.location.href = transaccion.urlExito;
+            } else {
+              window.location.href = 'https://www.google.com'; 
+            }
+          }} 
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-colors"
+        >
+          {transaccion.urlExito ? 'Volver a la Tienda' : 'Salir de forma segura'}
+        </button>
+        <p className="text-xs text-slate-400 mt-4">Ya puedes cerrar esta pestaña de forma segura.</p>
       </div>
     </div>
   );
