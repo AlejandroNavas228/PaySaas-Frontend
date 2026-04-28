@@ -117,24 +117,46 @@ export default function Checkout() {
       <div className="w-full md:w-1/3 bg-slate-900 p-8 md:p-12 text-white flex flex-col justify-between">
         <div>
           <LogoLumina className="mb-12" />
-          <div className="space-y-6">
+          
+          <div className="space-y-8">
+            {/* Nombre del Comercio */}
             <div>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Pagando a</p>
-              <h2 className="text-2xl font-bold">{comercio?.nombre}</h2>
+              <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Comercio Autorizado</p>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                {comercio?.nombre || 'Cargando...'}
+                <ShieldCheck size={18} className="text-blue-500" />
+              </h2>
             </div>
-            <div className="py-6 border-y border-white/10">
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">Concepto</p>
-              <p className="text-lg text-slate-200">{transaccion?.descripcion || 'Compra General'}</p>
+
+            {/* Concepto / Descripción */}
+            <div className="py-8 border-y border-white/10">
+              <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Detalle de la Compra</p>
+              <p className="text-xl text-slate-100 font-medium leading-relaxed">
+                {/* 💡 Aquí se inyecta la descripción real */}
+                {transaccion?.descripcion || 'Procesando concepto...'}
+              </p>
             </div>
+
+            {/* Precio Final */}
             <div className="pt-4">
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Total a Pagar</p>
-              <h1 className="text-5xl font-black">${transaccion?.monto} <span className="text-xl text-slate-500">{transaccion?.moneda}</span></h1>
+              <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Monto Total</p>
+              <h1 className="text-6xl font-black tracking-tighter">
+                {/* 💡 Aquí se inyecta el monto con 2 decimales */}
+                ${transaccion?.monto ? Number(transaccion.monto).toFixed(2) : '0.00'}
+                <span className="text-xl text-slate-500 ml-2 font-bold">{transaccion?.moneda || 'USD'}</span>
+              </h1>
             </div>
           </div>
         </div>
-        <div className="mt-12 flex items-center gap-2 text-slate-500 text-xs bg-white/5 p-4 rounded-2xl">
-          <ShieldCheck size={16} className="text-blue-400" />
-          Transacción protegida por cifrado SSL de 256 bits.
+
+        {/* Badge de Seguridad al fondo */}
+        <div className="mt-12 flex items-center gap-3 text-slate-500 text-[11px] bg-white/5 p-4 rounded-2xl border border-white/5 backdrop-blur-sm">
+          <div className="p-2 bg-blue-500/10 rounded-lg">
+            <ShieldCheck size={18} className="text-blue-400" />
+          </div>
+          <p className="leading-tight">
+            Transacción encriptada y procesada de forma segura por <span className="text-slate-300 font-bold">Lumina Network</span>.
+          </p>
         </div>
       </div>
 
