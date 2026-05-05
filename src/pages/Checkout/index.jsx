@@ -21,31 +21,49 @@ export default function Checkout() {
   const [referenciaManual, setReferenciaManual] = useState('');
   const [pagoExitoso, setPagoExitoso] = useState(false);
 
- useEffect(() => {
+useEffect(() => {
     const obtenerDatos = async () => {
+      // 💡 MODO DEMO INTERCEPTADO
+      if (id === 'demo') {
+        setTransaccion({
+          id: 'demo-0000-0000',
+          descripcion: 'Zapatos Deportivos Nike (Ejemplo Demo)',
+          monto: '45.00',
+          moneda: 'USD'
+        });
+        setComercio({
+          nombre: 'Tienda Demo Lumina',
+          pago_movil_banco: 'Banesco',
+          pago_movil_cedula: 'V-12345678',
+          pago_movil_tel: '0414-1234567',
+          zelle_email: 'pagos@tiendademo.com',
+          zinli_email: 'pagos@tiendademo.com',
+          wallet_usdt: '0x1234567890abcdef1234567890abcdef12345678',
+          paypal_client_id: 'test' 
+        });
+        setCargando(false);
+        return; // Detenemos la ejecución aquí para no llamar al backend
+      }
+
+      // LÓGICA NORMAL PARA PAGOS REALES
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout/${id}`);
         const data = await res.json();
         
         if (res.ok) {
-          // 💡 EL TRUCO ESTÁ AQUÍ: 
-          // Atrapamos los datos sin importar si el backend los llama "transaccion", "pago", o los envía directos.
           const datosTransaccion = data.transaccion || data.pago || data;
-          
           setTransaccion(datosTransaccion);
-          
-          // Y nos aseguramos de atrapar el comercio de la misma forma
           setComercio(data.comercio || datosTransaccion.comercio);
         } else {
           toast.error("Enlace de pago no válido");
         }
       } catch (error) {
-        console.error("Error al conectar con el servidor:", error);
         toast.error("Error al conectar con el servidor");
       } finally {
         setCargando(false);
       }
     };
+    
     obtenerDatos();
   }, [id]);
 
