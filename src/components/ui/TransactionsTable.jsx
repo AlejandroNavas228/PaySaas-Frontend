@@ -1,150 +1,107 @@
-import React, { useState } from 'react';
-import { Check, X, Clock, ExternalLink, ShieldCheck, Loader2, Star, Rocket, Zap } from 'lucide-react';
-import toast from 'react-hot-toast';
+import React from 'react';
+import { CheckCircle2, Clock, XCircle, CreditCard, Smartphone, Wallet, Mail } from 'lucide-react';
 
-export default function TransactionsTable({ transacciones, setTransacciones }) {
-  const [accionId, setAccionId] = useState(null);
-
-  const actualizarEstado = async (id, nuevoEstado) => {
-    setAccionId(id);
-    const toastId = toast.loading(`Cambiando estado a ${nuevoEstado}...`);
-    
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${id}/estado`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ estado: nuevoEstado })
-      });
-
-      if (response.ok) {
-        setTransacciones(prev => prev.map(t => t.id === id ? { ...t, estado: nuevoEstado } : t));
-        toast.success(`Pago ${nuevoEstado === 'aprobado' ? 'aprobado' : 'rechazado'} con éxito`, { id: toastId });
-      } else {
-        toast.error("No se pudo actualizar el estado", { id: toastId });
-      }
-    } catch (error) {
-      console.error("Error al actualizar estado:", error);
-      toast.error("Error de conexión", { id: toastId });
-    } finally {
-      setAccionId(null);
-    }
-  };
-
-  if (transacciones.length === 0) {
+export default function TransactionsTable({ transacciones }) {
+  if (!transacciones || transacciones.length === 0) {
     return (
-      <div className="p-20 text-center text-slate-500">
-        <Clock className="mx-auto mb-4 opacity-20" size={48} />
-        <p>No hay transacciones registradas aún.</p>
+      <div className="p-8 text-center text-slate-500">
+        No hay transacciones recientes para mostrar.
       </div>
     );
   }
 
+  // Helper para formatear la fecha a algo legible (Ej: 14 oct, 15:30)
+  const formatearFecha = (fechaString) => {
+    if (!fechaString) return '--';
+    const opciones = { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' };
+    return new Date(fechaString).toLocaleDateString('es-ES', opciones);
+  };
+
+  // Helper para darle colores e iconos bonitos a cada método de pago
+  const getMetodoInfo = (metodo) => {
+    const m = metodo?.toLowerCase() || '';
+    if (m.includes('pago móvil')) return { icon: <Smartphone size={16}/>, color: 'text-green-700 bg-green-50 border-green-200' };
+    if (m.includes('paypal')) return { icon: <CreditCard size={16}/>, color: 'text-blue-700 bg-blue-50 border-blue-200' };
+    if (m.includes('web3') || m.includes('cripto')) return { icon: <Wallet size={16}/>, color: 'text-amber-700 bg-amber-50 border-amber-200' };
+    if (m.includes('zelle') || m.includes('zinli')) return { icon: <Mail size={16}/>, color: 'text-purple-700 bg-purple-50 border-purple-200' };
+    return { icon: <CreditCard size={16}/>, color: 'text-slate-700 bg-slate-50 border-slate-200' };
+  };
+
+  // Helper para los colores de las etiquetas de estado
+  const getEstadoEstilo = (estado) => {
+    switch (estado) {
+      case 'aprobado':
+        return 'bg-green-100 text-green-700 border-green-200';
+      case 'pendiente':
+      case 'en_revision':
+        return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'rechazado':
+        return 'bg-red-100 text-red-700 border-red-200';
+      default:
+        return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
+
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
+      <table className="w-full text-left border-collapse min-w-[800px]">
         <thead>
-          <tr className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-widest">
-            <th className="px-6 py-4 font-semibold">Concepto / Producto</th>
-            <th className="px-6 py-4 font-semibold">Monto</th>
-            <th className="px-6 py-4 font-semibold">Método</th>
-            <th className="px-6 py-4 font-semibold">Estado</th>
-            <th className="px-6 py-4 font-semibold text-right">Acciones</th>
+          <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+            <th className="p-4 font-bold rounded-tl-xl">Ref / Fecha</th>
+            <th className="p-4 font-bold">Descripción del Producto</th>
+            <th className="p-4 font-bold">Método</th>
+            <th className="p-4 font-bold text-right">Monto (USD)</th>
+            <th className="p-4 font-bold text-center rounded-tr-xl">Estado</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-700/50">
-          {transacciones.map((t) => {
-            
-            // LÓGICA DE INSIGNIAS PARA PLANES
-            const esSuscripcion = t.referenciaComercio?.startsWith('SUB-');
-            const descLower = t.descripcion ? t.descripcion.toLowerCase() : '';
-            
-            let esPro = descLower.includes('pro');
-            let esBusiness = descLower.includes('business');
-            let esStarter = descLower.includes('starter') || (!esPro && !esBusiness && esSuscripcion);
-
+        <tbody className="divide-y divide-slate-100">
+          {transacciones.map((tx) => {
+            const metodoInfo = getMetodoInfo(tx.metodo);
             return (
-              <tr key={t.id} className="hover:bg-slate-700/20 transition-colors group">
-                <td className="px-6 py-5">
-                  <div className="flex flex-col">
-                    <span className="text-white font-medium flex items-center gap-2">
-                      {/* Ahora mostramos la descripción (Ej: Zapatos o Suscripción) como título principal */}
-                      <span className="truncate max-w-[200px]" title={t.descripcion || 'Venta General'}>
-                        {t.descripcion || 'Venta General'}
-                      </span>
-                      
-                      {/* Etiquetas VIP para cuando alguien compra un plan */}
-                      {esSuscripcion && (
-                        <>
-                          {esPro && (
-                            <span className="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full border border-yellow-500/30 font-bold flex items-center gap-1 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
-                              <Star size={10} className="fill-yellow-400" /> PLAN PRO
-                            </span>
-                          )}
-                          {esBusiness && (
-                            <span className="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/30 font-bold flex items-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.2)]">
-                              <Rocket size={10} className="fill-purple-400" /> BUSINESS
-                            </span>
-                          )}
-                          {esStarter && (
-                            <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30 font-bold flex items-center gap-1">
-                              <Zap size={10} className="fill-blue-400" /> STARTER
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </span>
-                    
-                    {/* Y ponemos la referencia abajo en gris y pequeñito, más discreto */}
-                    <span className="text-slate-500 text-[11px] font-mono mt-1">
-                      Ref: {t.referenciaComercio || t.id.slice(0, 10)}
-                    </span>
+              <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
+                {/* 1. REF Y FECHA */}
+                <td className="p-4 align-middle">
+                  <p className="font-mono text-sm font-bold text-slate-800">
+                    {tx.referenciaComercio || tx.id.substring(0, 8)}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1 capitalize">
+                    {formatearFecha(tx.fecha || tx.createdAt)}
+                  </p>
+                </td>
+
+                {/* 2. DESCRIPCIÓN 100% VISIBLE */}
+                <td className="p-4 align-middle">
+                  <p className="text-sm text-slate-700 font-medium">
+                    {tx.descripcion || 'Sin descripción'}
+                  </p>
+                </td>
+
+                {/* 3. MÉTODO CON ICONO */}
+                <td className="p-4 align-middle">
+                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${metodoInfo.color}`}>
+                    {metodoInfo.icon}
+                    <span className="whitespace-nowrap">{tx.metodo}</span>
                   </div>
                 </td>
-                
-                <td className="px-6 py-5">
-                  <span className="text-white font-bold">${t.monto}</span>
-                  <span className="text-slate-500 text-xs ml-1">{t.moneda}</span>
+
+                {/* 4. MONTO GIGANTE Y CLARO */}
+                <td className="p-4 align-middle text-right">
+                  <p className="text-base font-black text-slate-800 whitespace-nowrap">
+                    ${Number(tx.monto).toFixed(2)}
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                    {tx.moneda || 'USD'}
+                  </p>
                 </td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-2 text-slate-300 text-sm">
-                    <span className="capitalize">{t.metodo}</span>
-                    {t.metodo === 'web3' && <ExternalLink size={12} className="text-blue-400" />}
-                  </div>
-                </td>
-                <td className="px-6 py-5">
-                  <StatusBadge estado={t.estado} />
-                </td>
-                <td className="px-6 py-5 text-right">
-                  <div className="flex justify-end gap-2">
-                    {(t.estado === 'pendiente' || t.estado === 'en_revision') && (
-                      <>
-                        <button 
-                          onClick={() => actualizarEstado(t.id, 'aprobado')}
-                          disabled={accionId === t.id}
-                          className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500 hover:text-white transition-all disabled:opacity-50"
-                          title="Aprobar Pago"
-                        >
-                          {accionId === t.id ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-                        </button>
-                        <button 
-                          onClick={() => actualizarEstado(t.id, 'rechazado')}
-                          disabled={accionId === t.id}
-                          className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
-                          title="Rechazar Pago"
-                        >
-                          {accionId === t.id ? <Loader2 className="animate-spin" size={18} /> : <X size={18} />}
-                        </button>
-                      </>
-                    )}
-                    {t.estado === 'aprobado' && (
-                      <div className="flex items-center gap-1 text-green-500/50 text-xs font-bold uppercase">
-                        <ShieldCheck size={14} /> Verificado
-                      </div>
-                    )}
-                  </div>
+
+                {/* 5. ESTADO */}
+                <td className="p-4 align-middle text-center">
+                  <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wide border ${getEstadoEstilo(tx.estado)}`}>
+                    {tx.estado === 'aprobado' && <CheckCircle2 size={14} />}
+                    {(tx.estado === 'pendiente' || tx.estado === 'en_revision') && <Clock size={14} />}
+                    {tx.estado === 'rechazado' && <XCircle size={14} />}
+                    {tx.estado.replace('_', ' ')}
+                  </span>
                 </td>
               </tr>
             );
@@ -152,28 +109,5 @@ export default function TransactionsTable({ transacciones, setTransacciones }) {
         </tbody>
       </table>
     </div>
-  );
-}
-
-function StatusBadge({ estado }) {
-  const styles = {
-    aprobado: "bg-green-500/10 text-green-500 border-green-500/20",
-    rechazado: "bg-red-500/10 text-red-500 border-red-500/20",
-    pendiente: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-    en_revision: "bg-amber-500/10 text-amber-500 border-amber-500/20"
-  };
-
-  const icons = {
-    aprobado: <Check size={12} />,
-    rechazado: <X size={12} />,
-    pendiente: <Clock size={12} />,
-    en_revision: <Loader2 size={12} className="animate-spin" />
-  };
-
-  return (
-    <span className={`flex items-center w-fit gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold uppercase tracking-wider ${styles[estado] || styles.pendiente}`}>
-      {icons[estado] || icons.pendiente}
-      {estado.replace('_', ' ')}
-    </span>
   );
 }
