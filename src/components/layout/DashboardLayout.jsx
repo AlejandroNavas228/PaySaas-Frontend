@@ -75,7 +75,6 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] font-sans overflow-hidden">
-      <Toaster position="top-right" />
       
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-slate-900/50 z-30 md:hidden backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
