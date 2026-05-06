@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'; 
 import LogoLumina from '../ui/LogoLumina';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import toast, { Toaster } from 'react-hot-toast';
+import { useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { 
   LayoutDashboard, Receipt, Settings, LogOut, ExternalLink, 
-  Bell, Search, User, Terminal, Zap, Menu, X, Lock, Crown 
+  Bell, User, Terminal, Zap, Menu, X, Lock, Crown 
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
@@ -13,12 +13,8 @@ export default function DashboardLayout({ children }) {
   
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotifMenuOpen, setIsNotifMenuOpen] = useState(false);
-  const [notificaciones, setNotificaciones] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [comercio, setComercio] = useState(null); // Estado para el plan y datos del usuario
-
-  const [searchParams, setSearchParams] = useSearchParams();
-  const terminoBusqueda = searchParams.get('buscar') || '';
 
   // 1. CARGAR DATOS DEL USUARIO (Para saber el plan en tiempo real)
   useEffect(() => {
@@ -41,15 +37,6 @@ export default function DashboardLayout({ children }) {
     };
     cargarUsuario();
   }, [location.pathname]);
-
-  const handleBuscar = (e) => {
-    const texto = e.target.value;
-    if (location.pathname !== '/dashboard') {
-      navigate(`/dashboard?buscar=${texto}`);
-    } else {
-      texto ? setSearchParams({ buscar: texto }) : setSearchParams({});
-    }
-  };
 
   const handleLogout = () => {
     localStorage.clear();
@@ -127,7 +114,6 @@ export default function DashboardLayout({ children }) {
           <div className="pt-6 mt-6 border-t border-slate-800/50">
             <button 
               onClick={() => {
-                // 3. ARREGLO DEL BOTÓN DEMO: Nueva pestaña y ID de demo
                 window.open('/checkout/demo_preview', '_blank');
                 setIsSidebarOpen(false);
               }} 
@@ -157,10 +143,8 @@ export default function DashboardLayout({ children }) {
             <Menu size={24} />
           </button>
 
-          <div className="hidden sm:flex items-center bg-slate-100 px-4 py-2 rounded-full w-48 md:w-64 border border-slate-200">
-            <Search size={16} className="text-slate-400" />
-            <input type="text" placeholder="Buscar..." value={terminoBusqueda} onChange={handleBuscar} className="bg-transparent border-none focus:outline-none ml-2 text-sm w-full" />
-          </div>
+          {/* 💡 ESPACIO VACÍO DONDE ESTABA LA BARRA DE BÚSQUEDA */}
+          <div className="flex-1"></div>
 
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -179,7 +163,6 @@ export default function DashboardLayout({ children }) {
                     <p className="text-sm font-bold text-slate-700 truncate max-w-[120px]">
                       {comercio?.nombre || 'Cargando...'}
                     </p>
-                    {/* 4. INSIGNIA DE RANGO VISUAL */}
                     {comercio?.plan_actual === 'business' && (
                       <span className="bg-purple-100 text-purple-600 text-[9px] font-black px-1.5 py-0.5 rounded border border-purple-200 flex items-center gap-0.5 shadow-sm">
                         <Crown size={8} /> BIZ
@@ -204,7 +187,7 @@ export default function DashboardLayout({ children }) {
                   <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50">
                     <div className="px-4 py-3 border-b border-slate-50 mb-2">
                       <p className="text-sm font-bold text-slate-800">{comercio?.nombre}</p>
-                      <p className="text-xs text-slate-400 font-medium capitalize">Plan {comercio?.plan_actual}</p>
+                      <p className="text-xs text-slate-400 font-medium capitalize">Plan {comercio?.plan_actual || 'Starter'}</p>
                     </div>
                     <button onClick={() => { setIsProfileMenuOpen(false); navigate('/perfil'); }} className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 flex items-center gap-3">
                       <User size={16} /> Mi Perfil
