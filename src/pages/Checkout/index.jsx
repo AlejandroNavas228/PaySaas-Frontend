@@ -21,10 +21,10 @@ export default function Checkout() {
   const [referenciaManual, setReferenciaManual] = useState('');
   const [pagoExitoso, setPagoExitoso] = useState(false);
 
-useEffect(() => {
+  useEffect(() => {
     const obtenerDatos = async () => {
       // 💡 MODO DEMO INTERCEPTADO
-      if (id === 'demo') {
+      if (id === 'demo' || id === 'demo_preview') {
         setTransaccion({
           id: 'demo-0000-0000',
           descripcion: 'Zapatos Deportivos Nike (Ejemplo Demo)',
@@ -42,7 +42,7 @@ useEffect(() => {
           paypal_client_id: 'test' 
         });
         setCargando(false);
-        return; // Detenemos la ejecución aquí para no llamar al backend
+        return; 
       }
 
       // LÓGICA NORMAL PARA PAGOS REALES
@@ -76,6 +76,15 @@ useEffect(() => {
     if (!referenciaManual) return toast.error("Ingresa el número de referencia");
     setProcesando(true);
     
+    // 💡 SIMULACIÓN MODO DEMO (Para que no explote si es la demo)
+    if (id === 'demo' || id === 'demo_preview') {
+      setTimeout(() => {
+        setProcesando(false);
+        setPagoExitoso(true);
+      }, 1500); 
+      return; 
+    }
+
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout/${id}/confirmar`, {
         method: 'POST',
@@ -116,21 +125,18 @@ useEffect(() => {
         <div className="bg-slate-50 rounded-2xl p-4 mb-8 text-sm text-slate-600 font-medium">
           Referencia: <span className="font-mono text-slate-900">{referenciaManual || 'PayPal/Web3'}</span>
         </div>
-       <button 
+        <button 
           onClick={() => {
             if (id === 'demo' || id === 'demo_preview') {
               window.location.href = '/dashboard'; 
-              
             } else if (transaccion?.urlExito) {
               window.location.href = transaccion.urlExito;
-              
             } else {
               window.location.href = 'https://luminapay.xyz'; 
             }
           }} 
           className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-colors mt-6"
         >
-  
           {id === 'demo' || id === 'demo_preview' 
             ? 'Volver al Dashboard' 
             : transaccion?.urlExito 
@@ -152,7 +158,6 @@ useEffect(() => {
           <LogoLumina className="mb-12" />
           
           <div className="space-y-8">
-            {/* Nombre del Comercio */}
             <div>
               <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Comercio Autorizado</p>
               <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -161,20 +166,16 @@ useEffect(() => {
               </h2>
             </div>
 
-            {/* Concepto / Descripción */}
             <div className="py-8 border-y border-white/10">
               <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-3">Detalle de la Compra</p>
               <p className="text-xl text-slate-100 font-medium leading-relaxed">
-                {/* 💡 Aquí se inyecta la descripción real */}
                 {transaccion?.descripcion || 'Procesando concepto...'}
               </p>
             </div>
 
-            {/* Precio Final */}
             <div className="pt-4">
               <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Monto Total</p>
               <h1 className="text-6xl font-black tracking-tighter">
-                {/* 💡 Aquí se inyecta el monto con 2 decimales */}
                 ${transaccion?.monto ? Number(transaccion.monto).toFixed(2) : '0.00'}
                 <span className="text-xl text-slate-500 ml-2 font-bold">{transaccion?.moneda || 'USD'}</span>
               </h1>
@@ -182,7 +183,6 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Badge de Seguridad al fondo */}
         <div className="mt-12 flex items-center gap-3 text-slate-500 text-[11px] bg-white/5 p-4 rounded-2xl border border-white/5 backdrop-blur-sm">
           <div className="p-2 bg-blue-500/10 rounded-lg">
             <ShieldCheck size={18} className="text-blue-400" />
@@ -231,27 +231,24 @@ useEffect(() => {
               <h3 className="text-2xl font-bold text-slate-800 mb-2">Pagar con {metodoSeleccionado}</h3>
               <p className="text-slate-500 mb-8 text-sm">Sigue las instrucciones para completar tu transferencia.</p>
 
-              {/* LÓGICA DE PAGO MÓVIL (DATOS RESTAURADOS) */}
               {metodoSeleccionado === 'Pago Móvil' && (
                 <div className="space-y-6">
                   <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                    <DatoFila etiqueta="Banco" valor={comercio.pago_movil_banco} icono={<Landmark size={18}/>} alCopiar={() => copiarTexto(comercio.pago_movil_banco, "Banco copiado")} />
-                    <DatoFila etiqueta="Cédula / RIF" valor={comercio.pago_movil_cedula} alCopiar={() => copiarTexto(comercio.pago_movil_cedula, "ID copiado")} />
-                    <DatoFila etiqueta="Teléfono" valor={comercio.pago_movil_tel} alCopiar={() => copiarTexto(comercio.pago_movil_tel, "Teléfono copiado")} />
+                    <DatoFila etiqueta="Banco" valor={comercio?.pago_movil_banco} icono={<Landmark size={18}/>} alCopiar={() => copiarTexto(comercio?.pago_movil_banco, "Banco copiado")} />
+                    <DatoFila etiqueta="Cédula / RIF" valor={comercio?.pago_movil_cedula} alCopiar={() => copiarTexto(comercio?.pago_movil_cedula, "ID copiado")} />
+                    <DatoFila etiqueta="Teléfono" valor={comercio?.pago_movil_tel} alCopiar={() => copiarTexto(comercio?.pago_movil_tel, "Teléfono copiado")} />
                   </div>
                   <InputReferencia valor={referenciaManual} onChange={setReferenciaManual} disabled={procesando} onConfirm={confirmarPagoManual} />
                 </div>
               )}
 
-              {/* LÓGICA DE PAYPAL (CLIENT_ID DINÁMICO) */}
               {metodoSeleccionado === 'PayPal' && (
                 <div className="mt-4 min-h-[300px]">
-                  {comercio.paypal_client_id ? (
+                  {comercio?.paypal_client_id ? (
                     <PayPalScriptProvider options={{ "client-id": comercio.paypal_client_id }}>
                       <PayPalButtons 
                         style={{ layout: "vertical", shape: "rect", color: "blue" }}
                         createOrder={(data, actions) => {
-                          // 💡 CORRECCIÓN: Forzamos 2 decimales y especificamos USD
                           const montoFormateado = Number(transaccion.monto).toFixed(2);
                           return actions.order.create({
                             purchase_units: [{ 
@@ -295,25 +292,23 @@ useEffect(() => {
                 </div>
               )}
 
-              {/* LÓGICA ZELLE / ZINLI */}
               {metodoSeleccionado === 'Zelle' && (
                 <div className="space-y-6">
                   <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                    <DatoFila etiqueta="Email Zelle" valor={comercio.zelle_email} alCopiar={() => copiarTexto(comercio.zelle_email, "Email copiado")} />
-                    <DatoFila etiqueta="Email Zinli" valor={comercio.zinli_email} alCopiar={() => copiarTexto(comercio.zinli_email, "Email copiado")} />
+                    <DatoFila etiqueta="Email Zelle" valor={comercio?.zelle_email} alCopiar={() => copiarTexto(comercio?.zelle_email, "Email copiado")} />
+                    <DatoFila etiqueta="Email Zinli" valor={comercio?.zinli_email} alCopiar={() => copiarTexto(comercio?.zinli_email, "Email copiado")} />
                   </div>
                   <InputReferencia valor={referenciaManual} onChange={setReferenciaManual} disabled={procesando} onConfirm={confirmarPagoManual} />
                 </div>
               )}
 
-              {/* LÓGICA WEB3 */}
               {metodoSeleccionado === 'Web3' && (
                 <div className="space-y-6">
                   <div className="bg-slate-900 rounded-3xl p-6 text-white shadow-xl">
                     <p className="text-[10px] text-slate-500 uppercase font-bold mb-2">Enviar USDT (Red BSC)</p>
                     <div className="flex items-center justify-between gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-                      <p className="text-xs font-mono truncate">{comercio.wallet_usdt || 'No configurada'}</p>
-                      <button onClick={() => copiarTexto(comercio.wallet_usdt, "Wallet copiada")} className="p-2 bg-white/10 rounded-lg hover:bg-white/20"><Copy size={16}/></button>
+                      <p className="text-xs font-mono truncate">{comercio?.wallet_usdt || 'No configurada'}</p>
+                      <button onClick={() => copiarTexto(comercio?.wallet_usdt, "Wallet copiada")} className="p-2 bg-white/10 rounded-lg hover:bg-white/20"><Copy size={16}/></button>
                     </div>
                   </div>
                   <InputReferencia valor={referenciaManual} onChange={setReferenciaManual} disabled={procesando} onConfirm={confirmarPagoManual} />
@@ -327,7 +322,7 @@ useEffect(() => {
   );
 }
 
-// COMPONENTES AUXILIARES PARA LIMPIEZA VISUAL
+// COMPONENTES AUXILIARES
 function MetodoCard({ titulo, sub, icon, onClick }) {
   return (
     <button onClick={onClick} className="flex items-center justify-between p-5 bg-white border border-slate-200 rounded-2xl hover:border-blue-500 hover:shadow-md transition-all group">

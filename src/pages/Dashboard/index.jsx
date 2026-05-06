@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Clock, ArrowUpRight, Activity, Loader2, Link as LinkIcon, Code, Rocket, Star, ShieldCheck } from 'lucide-react';
+import { DollarSign, Clock, ArrowUpRight, Activity, Loader2, Link as LinkIcon, Rocket, Star, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import TransactionsTable from '../../components/ui/TransactionsTable';
@@ -19,9 +19,9 @@ const DashboardSkeleton = () => (
   </div>
 );
 
-// 👑 NUEVO COMPONENTE: El Banner de Celebración
+// 👑 COMPONENTE: El Banner de Celebración
 const BannerPremium = ({ plan }) => {
-  if (!plan || plan === 'starter') return null; // Si es starter, no mostramos banner premium
+  if (!plan || plan === 'starter') return null;
 
   if (plan === 'business') {
     return (
@@ -72,7 +72,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
   const [transacciones, setTransacciones] = useState([]);
-  const [comercio, setComercio] = useState(null); // Añadimos estado para guardar los datos del comercio
+  const [comercio, setComercio] = useState(null);
   
   const [metricas, setMetricas] = useState({
     ingresos: 0,
@@ -85,18 +85,62 @@ export default function Dashboard() {
   const [linkGenerado, setLinkGenerado] = useState('');
   const [generandoLink, setGenerandoLink] = useState(false);
 
+  // 💡 1. EL VIGILANTE DE LA SESIÓN (Estilo Binance)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    const cerrarSesionPorExpiracion = () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('comercio');
+      localStorage.removeItem('comercioId'); // Limpieza de seguridad extra
+      toast('Tu sesión ha expirado por seguridad. Vuelve a iniciar.', {
+        icon: '⏱️',
+        duration: 5000,
+        style: {
+          borderRadius: '10px',
+          background: '#1e293b',
+          color: '#fff',
+        },
+      });
+      navigate('/login');
+    };
+
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(window.atob(base64));
+      
+      const tiempoRestante = (payload.exp * 1000) - Date.now();
+
+      if (tiempoRestante <= 0) {
+        cerrarSesionPorExpiracion();
+      } else {
+        const temporizador = setTimeout(() => {
+          cerrarSesionPorExpiracion();
+        }, tiempoRestante);
+
+        return () => clearTimeout(temporizador);
+      }
+    } catch (error) {
+      cerrarSesionPorExpiracion();
+    }
+  }, [navigate]);
+
+  // 💡 2. CARGA DE DATOS DEL DASHBOARD
   useEffect(() => {
     const cargarDatos = async () => {
       const comercioId = localStorage.getItem('comercioId');
       const token = localStorage.getItem('token');
 
-      if (!comercioId || !token) {
-        navigate('/login');
-        return;
-      }
+      // Si no hay datos, el vigilante de arriba ya se encarga de expulsarlo
+      if (!comercioId || !token) return;
 
       try {
-        // 💡 Hacemos DOS llamadas: Una para los pagos y otra para ver qué plan tiene el usuario HOY
         const [resPagos, resComercio] = await Promise.all([
           fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${comercioId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
           fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, { headers: { 'Authorization': `Bearer ${token}` } })
@@ -107,7 +151,7 @@ export default function Dashboard() {
           const dataComercio = await resComercio.json();
           
           setTransacciones(dataPagos); 
-          setComercio(dataComercio); // Guardamos el plan actualizado
+          setComercio(dataComercio);
           
           let ingresosTotales = 0;
           let pagosPendientes = 0;
@@ -185,10 +229,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 🚀 AQUÍ SE INYECTA EL BANNER MÁGICAMENTE SI EL PLAN ES PRO O BUSINESS */}
       <BannerPremium plan={comercio?.plan_actual} />
 
-      {/* Tarjetas de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group">
           <div className="absolute -right-6 -top-6 w-24 h-24 bg-green-50 rounded-full group-hover:scale-110 transition-transform"></div>
@@ -219,7 +261,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Generador de Links */}
       <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><LinkIcon size={20} /></div>
@@ -265,7 +306,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Tabla de Transacciones */}
       <h3 className="text-lg font-bold text-slate-800 mb-4">Actividad Reciente</h3>
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <TransactionsTable transacciones={transacciones.slice(0, 5)} setTransacciones={setTransacciones} />
