@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Download, FileText, Lock, Loader2 } from 'lucide-react';
+import { FileText, Lock, Loader2, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TransactionsTable from '../../components/ui/TransactionsTable';
 
 // 💡 1. EL GUARDIÁN DE LOS PLANES
 const tienePermiso = (planUsuario, planRequerido) => {
   const niveles = { 'starter': 0, 'pro': 1, 'business': 2 };
-  // Si por alguna razón no hay plan, asumimos starter (0)
   const nivelActual = niveles[planUsuario] || 0; 
   return nivelActual >= niveles[planRequerido];
 };
@@ -17,6 +16,10 @@ export default function Transacciones() {
   const [cargando, setCargando] = useState(true);
   const [transacciones, setTransacciones] = useState([]);
   const [comercio, setComercio] = useState(null);
+
+  // 💡 ESTADOS PARA LOS FILTROS
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('todos');
 
   // 2. CARGAMOS TODOS LOS DATOS
   useEffect(() => {
@@ -55,37 +58,56 @@ export default function Transacciones() {
     cargarDatos();
   }, [navigate]);
 
-  // 3. LA MAGIA DE EXCEL (Solo funciona si eres Pro o Business)
+  // 💡 3. LÓGICA DE FILTRADO (Se ejecuta en tiempo real)
+  const transaccionesFiltradas = transacciones.filter(tx => {
+    // Filtrar por estado
+    const coincideEstado = filtroEstado === 'todos' || tx.estado === filtroEstado;
+    
+    // Filtrar por búsqueda (Referencia o Descripción)
+    const textoBusqueda = busqueda.toLowerCase();
+    const coincideBusqueda = 
+      (tx.referenciaComercio && tx.referenciaComercio.toLowerCase().includes(textoBusqueda)) ||
+      (tx.descripcion && tx.descripcion.toLowerCase().includes(textoBusqueda)) ||
+      (tx.id && tx.id.toLowerCase().includes(textoBusqueda));
+
+    return coincideEstado && coincideBusqueda;
+  });
+
+  // 4. EXCEL PERFECTO (Para Excel en Español)
   const exportarAExcel = () => {
     if (!tienePermiso(comercio?.plan_actual, 'pro')) {
       return toast.error("Función exclusiva de los planes PRO y BUSINESS");
     }
 
-    if (transacciones.length === 0) {
-      return toast.error("No hay transacciones para exportar");
+    if (transaccionesFiltradas.length === 0) {
+      return toast.error("No hay datos para exportar con estos filtros");
     }
 
-    // Cabeceras de Excel
+    // Cabeceras de la tabla
     const encabezados = ["ID Transaccion", "Fecha y Hora", "Producto", "Monto (USD)", "Metodo", "Estado", "Referencia"];
     
-    // Transformamos las transacciones a filas de texto
-    const filas = transacciones.map(tx => {
+    // Transformamos a filas usando PUNTO Y COMA (;) para Excel en español
+    const filas = transaccionesFiltradas.map(tx => {
       const fechaLimpia = new Date(tx.fecha || tx.createdAt).toLocaleString();
+      
+      // Limpiamos la descripción de posibles comillas dobles que rompan el archivo
+      const descLimpia = tx.descripcion ? tx.descripcion.replace(/"/g, '""') : 'General';
+
       return [
-        tx.id,
+        `"${tx.id}"`,
         `"${fechaLimpia}"`,
-        `"${tx.descripcion || 'General'}"`, // Comillas para evitar errores si el nombre tiene comas
-        tx.monto,
-        tx.metodo,
-        tx.estado,
-        tx.referenciaComercio || tx.id.substring(0,8)
-      ].join(",");
+        `"${descLimpia}"`,
+        `"${tx.monto}"`,
+        `"${tx.metodo}"`,
+        `"${tx.estado}"`,
+        `"${tx.referenciaComercio || tx.id.substring(0,8)}"`
+      ].join(";"); // 👈 El separador clave
     });
 
-    // Unimos cabeceras y filas
-    const contenidoCsv = [encabezados.join(","), ...filas].join("\n");
+    // 💡 El "\uFEFF" es la magia (BOM) que le dice a Excel que respete los acentos y las ñ
+    const contenidoCsv = "\uFEFF" + [encabezados.join(";"), ...filas].join("\n");
     
-    // Forzamos la descarga del archivo en el navegador
+    // Forzamos la descarga
     const blob = new Blob([contenidoCsv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -109,20 +131,20 @@ export default function Transacciones() {
   return (
     <div className="max-w-6xl mx-auto pb-10">
       
-      {/* ENCABEZADO Y BOTÓN DE EXCEL */}
+      {/* ENCABEZADO */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Historial de Transacciones</h1>
-          <p className="text-slate-500 mt-1">Revisa todos los pagos procesados y pendientes de tu negocio.</p>
+          <p className="text-slate-500 mt-1">Revisa y filtra todos los pagos de tu negocio.</p>
         </div>
 
-        {/* 💡 RENDERIZADO CONDICIONAL DEL BOTÓN */}
+        {/* BOTÓN DE EXCEL CONDICIONAL */}
         {tienePermiso(comercio?.plan_actual, 'pro') ? (
           <button 
             onClick={exportarAExcel} 
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md shadow-green-600/20"
           >
-            <FileText size={20} /> Exportar Reporte (.csv)
+            <FileText size={20} /> Exportar Reporte
           </button>
         ) : (
           <div className="group relative">
@@ -132,7 +154,6 @@ export default function Transacciones() {
             >
               <Lock size={18} /> Exportar Reporte
             </button>
-            {/* Pequeño tooltip invitando a mejorar el plan */}
             <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-max text-[10px] font-bold text-amber-600 opacity-0 group-hover:opacity-100 transition-opacity">
               Requiere Plan PRO o superior
             </span>
@@ -140,10 +161,46 @@ export default function Transacciones() {
         )}
       </div>
 
+      {/* 💡 BARRA DE FILTROS */}
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row gap-4">
+        
+        {/* Buscador de Texto */}
+        <div className="flex-1 relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search size={18} className="text-slate-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar por referencia o producto..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-colors text-sm"
+          />
+        </div>
+
+        {/* Selector de Estado */}
+        <div className="md:w-64 relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Filter size={18} className="text-slate-400" />
+          </div>
+          <select
+            value={filtroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-colors text-sm appearance-none bg-white cursor-pointer"
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="aprobado">Aprobados</option>
+            <option value="en_revision">En Revisión / Pendientes</option>
+            <option value="rechazado">Rechazados</option>
+          </select>
+        </div>
+
+      </div>
+
       {/* TABLA DE TRANSACCIONES */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Le pasamos todas las transacciones, no solo las 5 primeras */}
-        <TransactionsTable transacciones={transacciones} />
+        {/* Le pasamos la lista FILTRADA, ya no la lista completa */}
+        <TransactionsTable transacciones={transaccionesFiltradas} />
       </div>
 
     </div>
