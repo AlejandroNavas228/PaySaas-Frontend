@@ -17,6 +17,17 @@ export default function TransactionsTable({ transacciones }) {
     return new Date(fechaString).toLocaleDateString('es-ES', opciones);
   };
 
+  const formatearReferencia = (ref, id) => {
+    if (!ref) return id?.substring(0, 8) || '---';
+    if (ref.startsWith('SUB-')) {
+
+      return `SUB-${ref.split('-')[1].substring(0, 8).toUpperCase()}...`;
+    }
+    // Si es un link normal y es muy largo, lo acortamos un poco
+    if (ref.length > 15) return ref.substring(0, 15) + '...';
+    return ref;
+  };
+
   // Helper para darle colores e iconos bonitos a cada método de pago
   const getMetodoInfo = (metodo) => {
     const m = metodo?.toLowerCase() || '';
@@ -62,7 +73,16 @@ export default function TransactionsTable({ transacciones }) {
                 {/* 1. REF Y FECHA */}
                 <td className="p-4 align-middle">
                   <p className="font-mono text-sm font-bold text-slate-800">
-                    {tx.referenciaComercio || tx.id.substring(0, 8)}
+                    {/* 1. REF Y FECHA */}
+                <td className="p-4 align-middle">
+                  {/* 💡 AQUÍ USAMOS NUESTRO NUEVO HELPER, y le agregamos el 'title' para verla completa al pasar el mouse */}
+                  <p className="font-mono text-sm font-bold text-slate-800" title={tx.referenciaComercio}>
+                    {formatearReferencia(tx.referenciaComercio, tx.id)}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1 capitalize">
+                    {formatearFecha(tx.fecha || tx.createdAt)}
+                  </p>
+                </td>
                   </p>
                   <p className="text-xs text-slate-400 mt-1 capitalize">
                     {formatearFecha(tx.fecha || tx.createdAt)}
