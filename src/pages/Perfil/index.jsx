@@ -1,120 +1,201 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { User, Lock, Save, Loader2, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { User, Mail, Calendar, ShieldCheck, Edit3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Perfil() {
-  const [usuario, setUsuario] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const obtenerDatos = async () => {
-      const comercioId = localStorage.getItem('comercioId');
-      const token = localStorage.getItem('token');
-
-      if (!comercioId || !token) {
-        navigate('/login');
-        return;
-      }
-
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUsuario(data);
-        }
-      } catch (error) {
-        console.error(error);
-        toast.error('Error al cargar el perfil');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    obtenerDatos();
-  }, [navigate]);
-
-  if (isLoading) {
-    return <div className="p-10 text-slate-500 font-medium animate-pulse">Cargando perfil...</div>;
-  }
-
-  // Formateamos la fecha en la que se registró
-  const fechaRegistro = new Date(usuario?.createdAt).toLocaleDateString('es-VE', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  
+  const [datosPerfil, setDatosPerfil] = useState({
+    nombre: '',
+    email: '', // El email será de solo lectura por ahora
   });
 
-  return (
-    <div className="space-y-8 animate-fade-in pb-10 max-w-3xl mx-auto">
-      
-      <div>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Mi Perfil</h1>
-        <p className="text-slate-500 text-sm mt-1">Gestiona tu información personal y preferencias de cuenta.</p>
-      </div>
+  const [seguridad, setSeguridad] = useState({
+    nuevaPassword: '',
+    confirmarPassword: ''
+  });
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden relative">
-        {/* Banner de fondo decorativo */}
-        <div className="h-32 bg-gradient-to-r from-blue-600 to-indigo-600"></div>
+  // 1. Cargar los datos actuales del usuario al entrar a la página
+  useEffect(() => {
+    const comercioGuardado = localStorage.getItem('comercio');
+    
+    if (comercioGuardado) {
+      const parsedComercio = JSON.parse(comercioGuardado);
+      setDatosPerfil({
+        nombre: parsedComercio.nombre || '',
+        email: parsedComercio.email || '',
+      });
+      setCargando(false);
+    } else {
+      // Si por alguna razón no hay datos, lo mandamos al login
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  // 2. Manejar el envío del formulario
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const comercioId = localStorage.getItem('comercioId');
+    const token = localStorage.getItem('token');
+
+    // Validación de contraseñas si el usuario intentó cambiarla
+    if (seguridad.nuevaPassword) {
+      if (seguridad.nuevaPassword !== seguridad.confirmarPassword) {
+        return toast.error('Las contraseñas no coinciden.');
+      }
+      if (seguridad.nuevaPassword.length < 8) {
+        return toast.error('La contraseña debe tener al menos 8 caracteres.');
+      }
+    }
+
+    if (!datosPerfil.nombre.trim()) {
+      return toast.error('El nombre no puede estar vacío.');
+    }
+
+    setGuardando(true);
+
+    try {
+      // Preparamos el paquete de datos a enviar
+      const payload = { nombre: datosPerfil.nombre };
+      if (seguridad.nuevaPassword) {
+        payload.nuevaPassword = seguridad.nuevaPassword;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}/perfil`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('¡Perfil actualizado con éxito!');
         
-        <div className="px-8 pb-8 relative">
-          {/* Foto de perfil superpuesta */}
-          <div className="flex justify-between items-end -mt-12 mb-8">
-            <div className="h-24 w-24 bg-white rounded-full p-1.5 shadow-lg">
-              <div className="h-full w-full bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-full flex items-center justify-center text-white text-3xl font-bold uppercase">
-                {usuario?.nombre.charAt(0)}
-              </div>
-            </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 rounded-xl font-semibold transition-colors text-sm">
-              <Edit3 size={16} />
-              Editar Perfil
-            </button>
-          </div>
+        // Actualizamos el nombre en el localStorage para que el menú lateral cambie
+        const comercioActual = JSON.parse(localStorage.getItem('comercio'));
+        comercioActual.nombre = data.comercio.nombre;
+        localStorage.setItem('comercio', JSON.stringify(comercioActual));
 
-          {/* Información del Usuario */}
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <User size={14} /> Nombre Completo
-                </label>
-                <p className="text-lg font-bold text-slate-800">{usuario?.nombre}</p>
-              </div>
+        // Limpiamos los campos de contraseña
+        setSeguridad({ nuevaPassword: '', confirmarPassword: '' });
+      } else {
+        toast.error(data.error || 'Error al actualizar el perfil.');
+      }
+    } catch (error) {
+      console.error("Error de red:", error);
+      toast.error('Error de conexión con el servidor.');
+    } finally {
+      setGuardando(false);
+    }
+  };
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <Mail size={14} /> Correo Electrónico
-                </label>
-                <p className="text-lg font-bold text-slate-800">{usuario?.email}</p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <ShieldCheck size={14} /> Nivel de Acceso
-                </label>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-sm border border-blue-100">
-                  Administrador Total
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <Calendar size={14} /> Miembro desde
-                </label>
-                <p className="text-lg font-bold text-slate-800 capitalize">{fechaRegistro}</p>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
+  if (cargando) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
       </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto pb-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-800">Mi Perfil</h1>
+        <p className="text-slate-500 mt-1">Gestiona tu información personal y la seguridad de tu cuenta.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* SECCIÓN: INFORMACIÓN BÁSICA */}
+        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+          <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <User className="text-blue-600" size={20} />
+            Información General
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nombre del Comercio / Propietario</label>
+              <input 
+                type="text" 
+                value={datosPerfil.nombre}
+                onChange={(e) => setDatosPerfil({...datosPerfil, nombre: e.target.value})}
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm font-medium text-slate-800"
+                placeholder="Ej: Tienda de Zapatos CA"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Correo Electrónico</label>
+              <div className="relative">
+                <input 
+                  type="email" 
+                  value={datosPerfil.email}
+                  readOnly
+                  disabled
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm font-medium text-slate-500 cursor-not-allowed"
+                />
+                <Mail className="absolute left-3 top-3.5 text-slate-400" size={16} />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">* Por seguridad, el correo no se puede cambiar.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* SECCIÓN: SEGURIDAD Y CONTRASEÑA */}
+        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+          <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <Lock className="text-amber-500" size={20} />
+            Seguridad (Opcional)
+          </h2>
+          
+          <p className="text-sm text-slate-500 mb-6">Solo llena estos campos si deseas cambiar tu contraseña actual.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nueva Contraseña</label>
+              <input 
+                type="password" 
+                value={seguridad.nuevaPassword}
+                onChange={(e) => setSeguridad({...seguridad, nuevaPassword: e.target.value})}
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-amber-500 transition-all text-sm"
+                placeholder="Mínimo 8 caracteres"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Confirmar Nueva Contraseña</label>
+              <input 
+                type="password" 
+                value={seguridad.confirmarPassword}
+                onChange={(e) => setSeguridad({...seguridad, confirmarPassword: e.target.value})}
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-amber-500 transition-all text-sm"
+                placeholder="Repite tu nueva contraseña"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* BOTÓN DE GUARDAR */}
+        <div className="flex justify-end pt-4">
+          <button 
+            type="submit" 
+            disabled={guardando}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {guardando ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+            {guardando ? 'Guardando Cambios...' : 'Guardar Perfil'}
+          </button>
+        </div>
+
+      </form>
     </div>
   );
 }
