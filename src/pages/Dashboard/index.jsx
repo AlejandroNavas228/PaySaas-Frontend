@@ -180,6 +180,12 @@ export default function Dashboard() {
 
   const generarLinkRapido = async () => {
     if (!linkMonto || !linkConcepto) return toast.error('Llena el monto y el concepto');
+    
+    // 💡 NUEVO: Verificamos que ya tengamos la API Key cargada en el estado
+    if (!comercio?.api_key) {
+      return toast.error('Cargando credenciales de seguridad... intenta de nuevo en un segundo.');
+    }
+
     setGenerandoLink(true);
     
     try {
@@ -187,7 +193,8 @@ export default function Dashboard() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-api-key': localStorage.getItem('apiKey') 
+          // 💡 LA MAGIA ESTÁ AQUÍ: Usamos la API Key directamente del estado
+          'x-api-key': comercio.api_key 
         },
         body: JSON.stringify({
           monto: parseFloat(linkMonto),
@@ -210,7 +217,7 @@ export default function Dashboard() {
       setGenerandoLink(false);
     }
   };
-
+  
   const copiarAlPortapapeles = (texto) => {
     navigator.clipboard.writeText(texto);
     toast.success('¡Copiado!');
