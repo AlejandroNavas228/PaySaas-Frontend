@@ -118,15 +118,24 @@ useEffect(() => {
         </div>
        <button 
           onClick={() => {
-            if (transaccion.urlExito) {
+            if (id === 'demo' || id === 'demo_preview') {
+              window.location.href = '/dashboard'; 
+              
+            } else if (transaccion?.urlExito) {
               window.location.href = transaccion.urlExito;
+              
             } else {
-              window.location.href = 'https://www.google.com'; 
+              window.location.href = 'https://luminapay.xyz'; 
             }
           }} 
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-colors"
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-colors mt-6"
         >
-          {transaccion.urlExito ? 'Volver a la Tienda' : 'Salir de forma segura'}
+  
+          {id === 'demo' || id === 'demo_preview' 
+            ? 'Volver al Dashboard' 
+            : transaccion?.urlExito 
+              ? 'Volver a la Tienda' 
+              : 'Finalizar y salir'}
         </button>
         <p className="text-xs text-slate-400 mt-4">Ya puedes cerrar esta pestaña de forma segura.</p>
       </div>
