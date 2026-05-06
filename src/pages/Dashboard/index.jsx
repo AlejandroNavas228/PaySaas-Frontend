@@ -217,7 +217,7 @@ export default function Dashboard() {
       setGenerandoLink(false);
     }
   };
-  
+
   const copiarAlPortapapeles = (texto) => {
     navigator.clipboard.writeText(texto);
     toast.success('¡Copiado!');
@@ -227,7 +227,6 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-6xl mx-auto pb-10">
-      <Toaster position="top-right" />
       
       <div className="mb-8 flex justify-between items-end">
         <div>

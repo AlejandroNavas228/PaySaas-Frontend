@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast'; 
 
-
 // Importamos los componentes
 import RecuperarPassword from './pages/RecuperarPassword';
 import Verificacion from './pages/Verificacion/index';
@@ -16,12 +15,12 @@ import Landing from './pages/Landing';
 import Configuracion from './pages/Configuracion';
 import Transacciones from './pages/Transacciones';
 import Documentacion from './pages/Desarrolladores/index';
-import Planes from './pages/Planes';
+import Planes from './pages/Planes/index'; // 💡 FALTABA ESTA IMPORTACIÓN
 
 function App() {
   return (
     <>
-      {/* 2. Colocamos el Toaster aquí. position="top-right" las mostrará arriba a la derecha */}
+      {/* 💡 EL PROYECTOR GLOBAL: Perfecto aquí */}
       <Toaster position="top-right" reverseOrder={false} />
 
       <Routes>
@@ -29,9 +28,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Register />} />
         <Route path="/checkout/:id" element={<Checkout />} />
-         <Route path="/verificar" element={<Verificacion />} />
-         <Route path="/recuperar" element={<RecuperarPassword />} />
-         <Route path="/planes" element={<Planes />} />
+        <Route path="/verificar" element={<Verificacion />} />
+        <Route path="/recuperar" element={<RecuperarPassword />} />
+        <Route path="/planes" element={<Planes />} />
         
         <Route 
           path="/desarrolladores" 
@@ -41,7 +40,6 @@ function App() {
             </DashboardLayout>
           } 
         />
-
 
         <Route path="/transacciones" element={
           <DashboardLayout>
@@ -59,10 +57,10 @@ function App() {
         />
 
         <Route path="/perfil" element={
-        <DashboardLayout>
-          <Perfil />
-        </DashboardLayout>
-      } />
+          <DashboardLayout>
+            <Perfil />
+          </DashboardLayout>
+        } />
 
         <Route 
           path="/dashboard" 
@@ -73,7 +71,7 @@ function App() {
           } 
         />
 
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* 💡 ELIMINAMOS LA RUTA "/" REPETIDA, dejamos solo el catch-all para errores 404 */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </>

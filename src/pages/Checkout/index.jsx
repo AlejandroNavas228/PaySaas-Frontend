@@ -150,7 +150,6 @@ export default function Checkout() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col md:flex-row">
-      <Toaster position="top-center" />
 
       {/* RESUMEN DE ORDEN (IZQUIERDA) */}
       <div className="w-full md:w-1/3 bg-slate-900 p-8 md:p-12 text-white flex flex-col justify-between">
