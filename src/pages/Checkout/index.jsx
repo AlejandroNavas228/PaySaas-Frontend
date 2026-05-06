@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { 
   CheckCircle2, Copy, CreditCard, Wallet, Smartphone, 
-  Landmark, Mail, ShieldCheck, Loader2, ChevronRight, ArrowLeft 
+  Landmark, Mail, ShieldCheck, Loader2, ChevronRight, ArrowLeft, MessageCircle, ExternalLink,
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import LogoLumina from '../../components/ui/LogoLumina';
@@ -114,6 +114,32 @@ export default function Checkout() {
     </div>
   );
 
+  // 💡 CREADOR INTELIGENTE DEL MENSAJE DE WHATSAPP
+  const generarLinkWhatsApp = () => {
+    // 1. Limpiamos el número de cualquier espacio o guión
+    let telefono = comercio?.pago_movil_tel?.replace(/\D/g, '') || '';
+    
+    // 2. Formateo inteligente (Si empieza por 0, como 0414, lo cambiamos a 58414)
+    if (telefono.startsWith('0')) {
+      telefono = '58' + telefono.substring(1);
+    } else if (!telefono.startsWith('58') && telefono.length === 10) {
+      telefono = '58' + telefono;
+    }
+
+    // 3. Armamos los datos del comprobante
+    const ref = referenciaManual || transaccion?.id?.substring(0, 8) || 'No especificada';
+    const monto = Number(transaccion?.monto).toFixed(2);
+    const moneda = transaccion?.moneda || 'USD';
+    const producto = transaccion?.descripcion || 'Compra general';
+
+    // 4. Redactamos el mensaje
+    const texto = `¡Hola! Acabo de reportar un pago mediante Lumina Pay. 🚀\n\n📦 *Producto:* ${producto}\n💵 *Monto:* ${monto} ${moneda}\n🔍 *Referencia:* ${ref}\n\nPor favor, verifica la transacción y confirma mi pedido. ¡Gracias!`;
+
+    // 5. Retornamos el link oficial de la API
+    return `https://wa.me/${telefono}?text=${encodeURIComponent(texto)}`;
+  };
+
+
   if (pagoExitoso) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-xl text-center border border-slate-100">
@@ -121,29 +147,46 @@ export default function Checkout() {
           <CheckCircle2 size={40} />
         </div>
         <h2 className="text-2xl font-bold text-slate-800 mb-2">¡Reporte Recibido!</h2>
-        <p className="text-slate-500 mb-8">Tu pago ha sido registrado y está en proceso de verificación por el comercio.</p>
-        <div className="bg-slate-50 rounded-2xl p-4 mb-8 text-sm text-slate-600 font-medium">
-          Referencia: <span className="font-mono text-slate-900">{referenciaManual || 'PayPal/Web3'}</span>
+        <p className="text-slate-500 mb-8">Tu pago ha sido registrado. Para agilizar tu pedido, avísale a la tienda ahora mismo.</p>
+        
+        <div className="bg-slate-50 rounded-2xl p-4 mb-6 text-sm text-slate-600 font-medium border border-slate-200">
+          Referencia: <span className="font-mono text-slate-900 font-bold">{referenciaManual || 'PayPal/Web3'}</span>
         </div>
-        <button 
-          onClick={() => {
-            if (id === 'demo' || id === 'demo_preview') {
-              window.location.href = '/dashboard'; 
-            } else if (transaccion?.urlExito) {
-              window.location.href = transaccion.urlExito;
-            } else {
-              window.location.href = 'https://luminapay.xyz'; 
-            }
-          }} 
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl transition-colors mt-6"
-        >
-          {id === 'demo' || id === 'demo_preview' 
-            ? 'Volver al Dashboard' 
-            : transaccion?.urlExito 
-              ? 'Volver a la Tienda' 
-              : 'Finalizar y salir'}
-        </button>
-        <p className="text-xs text-slate-400 mt-4">Ya puedes cerrar esta pestaña de forma segura.</p>
+
+        <div className="space-y-3">
+          {/* 💡 EL BOTÓN MÁGICO DE WHATSAPP (Primario) */}
+          {comercio?.pago_movil_tel && (
+            <a 
+              href={generarLinkWhatsApp()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
+            >
+              <MessageCircle size={22} />
+              Avisar a la Tienda por WhatsApp
+            </a>
+          )}
+
+          {/* BOTÓN DE SALIDA (Secundario) */}
+          <button 
+            onClick={() => {
+              if (id === 'demo' || id === 'demo_preview') {
+                window.location.href = '/dashboard'; 
+              } else if (transaccion?.urlExito) {
+                window.location.href = transaccion.urlExito;
+              } else {
+                window.location.href = 'https://luminapay.xyz'; 
+              }
+            }} 
+            className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 rounded-xl transition-colors"
+          >
+            {id === 'demo' || id === 'demo_preview' 
+              ? 'Volver al Dashboard' 
+              : transaccion?.urlExito 
+                ? 'Volver a la Tienda' 
+                : 'Finalizar y salir'}
+          </button>
+        </div>
       </div>
     </div>
   );
