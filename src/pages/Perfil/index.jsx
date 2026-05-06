@@ -20,21 +20,43 @@ export default function Perfil() {
 
   // 1. Cargar los datos actuales del usuario al entrar a la página
   useEffect(() => {
-    const comercioGuardado = localStorage.getItem('comercio');
-    
-    if (comercioGuardado) {
-      const parsedComercio = JSON.parse(comercioGuardado);
-      setDatosPerfil({
-        nombre: parsedComercio.nombre || '',
-        email: parsedComercio.email || '',
-      });
-      setCargando(false);
-    } else {
-      // Si por alguna razón no hay datos, lo mandamos al login
-      navigate('/login');
-    }
-  }, [navigate]);
+    const cargarDatos = async () => {
+      const comercioId = localStorage.getItem('comercioId');
+      const token = localStorage.getItem('token');
 
+      // Si no hay token o ID, lo mandamos al login
+      if (!comercioId || !token) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setDatosPerfil({
+            nombre: data.nombre || '',
+            email: data.email || '',
+          });
+          setCargando(false);
+        } else {
+          // Si el token es inválido, cerramos sesión
+          localStorage.clear();
+          navigate('/login');
+        }
+      } catch (error) {
+        console.error("Error cargando perfil:", error);
+        toast.error('Error al cargar los datos del perfil');
+        setCargando(false);
+      }
+    };
+
+    cargarDatos();
+  }, [navigate]);
+  
   // 2. Manejar el envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
