@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Clock, ArrowUpRight, Activity, Loader2, Link as LinkIcon, Rocket, Star, ShieldCheck } from 'lucide-react';
+import { DollarSign, Clock, ArrowUpRight, Activity, Loader2, Link as LinkIcon, Rocket, Star, ShieldCheck, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import TransactionsTable from '../../components/ui/TransactionsTable';
@@ -8,18 +8,22 @@ const DashboardSkeleton = () => (
   <div className="max-w-6xl mx-auto pb-10 space-y-8 animate-pulse">
     <div className="w-1/3 h-10 bg-slate-200 rounded-lg mb-2"></div>
     <div className="w-full h-20 bg-slate-200 rounded-2xl mb-8"></div>
-    
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div className="h-32 bg-slate-200 rounded-2xl"></div>
       <div className="h-32 bg-slate-200 rounded-2xl"></div>
       <div className="h-32 bg-slate-200 rounded-2xl"></div>
     </div>
-    
     <div className="h-64 bg-slate-200 rounded-2xl"></div>
   </div>
 );
 
-// 👑 COMPONENTE: El Banner de Celebración
+// 💡 1. EL GUARDIÁN DE LOS PLANES
+const tienePermiso = (planUsuario, planRequerido) => {
+  const niveles = { 'starter': 0, 'pro': 1, 'business': 2 };
+  const nivelActual = niveles[planUsuario] || 0; 
+  return nivelActual >= niveles[planRequerido];
+};
+
 const BannerPremium = ({ plan }) => {
   if (!plan || plan === 'starter') return null;
 
@@ -82,31 +86,19 @@ export default function Dashboard() {
 
   const [linkMonto, setLinkMonto] = useState('');
   const [linkConcepto, setLinkConcepto] = useState('');
+  const [linkUrlExito, setLinkUrlExito] = useState(''); // 💡 2. NUEVO ESTADO PARA LA URL
   const [linkGenerado, setLinkGenerado] = useState('');
   const [generandoLink, setGenerandoLink] = useState(false);
 
-  // 💡 1. EL VIGILANTE DE LA SESIÓN (Estilo Binance)
   useEffect(() => {
     const token = localStorage.getItem('token');
-    
-    if (!token) {
-      navigate('/login');
-      return;
-    }
+    if (!token) { navigate('/login'); return; }
 
     const cerrarSesionPorExpiracion = () => {
       localStorage.removeItem('token');
       localStorage.removeItem('comercio');
-      localStorage.removeItem('comercioId'); // Limpieza de seguridad extra
-      toast('Tu sesión ha expirado por seguridad. Vuelve a iniciar.', {
-        icon: '⏱️',
-        duration: 5000,
-        style: {
-          borderRadius: '10px',
-          background: '#1e293b',
-          color: '#fff',
-        },
-      });
+      localStorage.removeItem('comercioId');
+      toast('Tu sesión ha expirado por seguridad. Vuelve a iniciar.', { icon: '⏱️', duration: 5000 });
       navigate('/login');
     };
 
@@ -114,30 +106,19 @@ export default function Dashboard() {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const payload = JSON.parse(window.atob(base64));
-      
       const tiempoRestante = (payload.exp * 1000) - Date.now();
-
-      if (tiempoRestante <= 0) {
-        cerrarSesionPorExpiracion();
-      } else {
-        const temporizador = setTimeout(() => {
-          cerrarSesionPorExpiracion();
-        }, tiempoRestante);
-
+      if (tiempoRestante <= 0) cerrarSesionPorExpiracion();
+      else {
+        const temporizador = setTimeout(cerrarSesionPorExpiracion, tiempoRestante);
         return () => clearTimeout(temporizador);
       }
-    } catch (error) {
-      cerrarSesionPorExpiracion();
-    }
+    } catch (error) { cerrarSesionPorExpiracion(); }
   }, [navigate]);
 
-  // 💡 2. CARGA DE DATOS DEL DASHBOARD
   useEffect(() => {
     const cargarDatos = async () => {
       const comercioId = localStorage.getItem('comercioId');
       const token = localStorage.getItem('token');
-
-      // Si no hay datos, el vigilante de arriba ya se encarga de expulsarlo
       if (!comercioId || !token) return;
 
       try {
@@ -149,13 +130,10 @@ export default function Dashboard() {
         if (resPagos.ok && resComercio.ok) {
           const dataPagos = await resPagos.json();
           const dataComercio = await resComercio.json();
-          
           setTransacciones(dataPagos); 
           setComercio(dataComercio);
           
-          let ingresosTotales = 0;
-          let pagosPendientes = 0;
-
+          let ingresosTotales = 0; let pagosPendientes = 0;
           dataPagos.forEach(tx => {
             if (tx.estado === 'aprobado') ingresosTotales += parseFloat(tx.monto);
             if (tx.estado === 'en_revision' || tx.estado === 'pendiente') pagosPendientes++;
@@ -168,50 +146,51 @@ export default function Dashboard() {
           });
         }
       } catch (error) {
-        console.error('Error al cargar datos:', error);
         toast.error('Error al sincronizar con el servidor');
       } finally {
         setTimeout(() => setCargando(false), 600);
       }
     };
-
     cargarDatos();
   }, [navigate]);
 
   const generarLinkRapido = async () => {
     if (!linkMonto || !linkConcepto) return toast.error('Llena el monto y el concepto');
-    
-    // 💡 NUEVO: Verificamos que ya tengamos la API Key cargada en el estado
-    if (!comercio?.api_key) {
-      return toast.error('Cargando credenciales de seguridad... intenta de nuevo en un segundo.');
-    }
+    if (!comercio?.api_key) return toast.error('Cargando credenciales de seguridad... intenta de nuevo.');
 
     setGenerandoLink(true);
     
     try {
+      // 💡 3. PREPARAMOS EL PAQUETE SEGÚN EL PLAN
+      const payload = {
+        monto: parseFloat(linkMonto),
+        descripcion: linkConcepto,
+        referenciaComercio: `LINK-${Math.floor(Math.random() * 10000)}`
+      };
+
+      // Solo mandamos la URL de éxito si tiene el plan PRO y escribió algo
+      if (tienePermiso(comercio?.plan_actual, 'pro') && linkUrlExito) {
+        payload.urlExito = linkUrlExito;
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          // 💡 LA MAGIA ESTÁ AQUÍ: Usamos la API Key directamente del estado
           'x-api-key': comercio.api_key 
         },
-        body: JSON.stringify({
-          monto: parseFloat(linkMonto),
-          descripcion: linkConcepto,
-          referenciaComercio: `LINK-${Math.floor(Math.random() * 10000)}`
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
       if (response.ok) {
         setLinkGenerado(data.url_pago);
         toast.success('¡Link generado con éxito!');
+        setLinkUrlExito(''); // Limpiamos la URL después de crear el link
       } else {
         toast.error(data.error || 'Error al generar el link');
       }
     } catch (error) {
-      console.error('Error de red:', error);
       toast.error('Error de red');
     } finally {
       setGenerandoLink(false);
@@ -227,7 +206,6 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-6xl mx-auto pb-10">
-      
       <div className="mb-8 flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold text-slate-800 mb-1">¡Hola, {comercio?.nombre || 'Comercio'}! 👋</h1>
@@ -274,13 +252,13 @@ export default function Dashboard() {
         </div>
         <p className="text-sm text-slate-500 mb-6">Crea un link de cobro instantáneo para enviar por WhatsApp o integrar en tu web.</p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Concepto / Producto</label>
             <input 
               type="text" placeholder="Ej: Zapatos Deportivos Blancos" 
               value={linkConcepto} onChange={(e) => setLinkConcepto(e.target.value)}
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition-all text-sm" 
+              className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm" 
             />
           </div>
           <div>
@@ -288,9 +266,30 @@ export default function Dashboard() {
             <input 
               type="number" placeholder="Ej: 25.50" 
               value={linkMonto} onChange={(e) => setLinkMonto(e.target.value)}
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition-all text-sm" 
+              className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm" 
             />
           </div>
+        </div>
+
+        {/* 💡 4. CAMPO BLOQUEADO (URL DE ÉXITO) */}
+        <div className={`mb-6 ${tienePermiso(comercio?.plan_actual, 'pro') ? "" : "opacity-60"}`}>
+          <label className="block text-xs font-bold text-slate-400 uppercase mb-2 flex items-center gap-2">
+            URL de Redirección (Éxito) 
+            {!tienePermiso(comercio?.plan_actual, 'pro') && <Lock size={12} className="text-amber-500" />}
+          </label>
+          <input 
+            type="text" 
+            placeholder="https://tuweb.com/gracias" 
+            value={linkUrlExito} 
+            onChange={(e) => setLinkUrlExito(e.target.value)}
+            disabled={!tienePermiso(comercio?.plan_actual, 'pro')}
+            className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm disabled:bg-slate-50 disabled:cursor-not-allowed" 
+          />
+          {!tienePermiso(comercio?.plan_actual, 'pro') && (
+            <p className="text-[10px] text-amber-600 font-bold mt-1">
+              ✨ Función bloqueada. Mejora al Plan PRO para redirigir a tus clientes a tu tienda tras el pago.
+            </p>
+          )}
         </div>
 
         <button 
