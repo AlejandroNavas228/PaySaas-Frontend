@@ -199,10 +199,12 @@ export default function Transacciones() {
 
       {/* TABLA DE TRANSACCIONES */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Le pasamos la lista FILTRADA, ya no la lista completa */}
-        <TransactionsTable transacciones={transaccionesFiltradas} />
+        {/* Le pasamos los datos Y el poder de actualizar la lista completa */}
+        <TransactionsTable 
+          transacciones={transaccionesFiltradas} 
+          setTransacciones={setTransacciones} 
+        />
       </div>
-
     </div>
   );
 }
