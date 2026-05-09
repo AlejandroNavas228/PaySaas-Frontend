@@ -1,170 +1,195 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Mail, KeyRound, Lock, ArrowRight } from 'lucide-react';
+import { Mail, KeyRound, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function RecuperarPassword() {
-  const [paso, setPaso] = useState(1); // Paso 1: Pedir correo | Paso 2: Pedir código y nueva clave
+  const navigate = useNavigate();
+  const [paso, setPaso] = useState(1); // 1 = Pedir Email | 2 = Pedir Código y Nueva Contraseña
+  const [cargando, setCargando] = useState(false);
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+
+  // Estados del formulario
   const [email, setEmail] = useState('');
   const [codigo, setCodigo] = useState('');
   const [nuevaPassword, setNuevaPassword] = useState('');
-  const [cargando, setCargando] = useState(false);
-  
-  const navigate = useNavigate();
+  const [confirmarPassword, setConfirmarPassword] = useState('');
 
-  // Función para pedir el código (Paso 1)
-  const handlePedirCodigo = async (e) => {
+  // 📩 ENVIAR CORREO
+  const handleSolicitarCodigo = async (e) => {
     e.preventDefault();
-    if (!email) return toast.error('Ingresa tu correo');
-
+    if (!email) return toast.error("Ingresa tu correo electrónico");
+    
     setCargando(true);
     try {
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/recuperar-password', {
+      // 💡 AQUÍ ESTÁ EL ARREGLO DE LAS COMILLAS (Usamos acentos graves ` `)
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/recuperar-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
-
-      if (response.ok) {
-        toast.success('Si el correo existe, te enviamos un código.');
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast.success(data.mensaje || 'Revisa tu bandeja de entrada');
         setPaso(2); // Pasamos a la siguiente pantalla
       } else {
-        toast.error('Hubo un error al procesar la solicitud.');
+        toast.error(data.error || 'Error al solicitar recuperación');
       }
     } catch (error) {
-        console.error(error);
-      toast.error('Error de conexión con el servidor.');
+      toast.error('Error de red. Verifica tu conexión.');
     } finally {
       setCargando(false);
     }
   };
 
-  // Función para cambiar la contraseña (Paso 2)
-  const handleCambiarPassword = async (e) => {
+  // 🔑 CAMBIAR CONTRASEÑA
+  const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (codigo.length !== 6) return toast.error('El código debe tener 6 dígitos');
-    if (nuevaPassword.length < 6) return toast.error('La contraseña debe tener al menos 6 caracteres');
+    if (nuevaPassword !== confirmarPassword) {
+      return toast.error("Las contraseñas no coinciden");
+    }
 
     setCargando(true);
     try {
-      const response = await fetch('${import.meta.env.VITE_API_URL}/api/restablecer-password', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, codigo, nuevaPassword })
       });
+      const data = await res.json();
 
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success('¡Contraseña actualizada con éxito!');
-        navigate('/login'); // Lo mandamos a iniciar sesión con su nueva clave
+      if (res.ok) {
+        toast.success('¡Contraseña cambiada con éxito!', { duration: 4000 });
+        navigate('/login'); // Lo mandamos a iniciar sesión
       } else {
-        toast.error(data.error || 'Código incorrecto');
+        toast.error(data.error || 'Error al cambiar la contraseña');
       }
     } catch (error) {
-      console.error(error);
-      toast.error('Error de conexión con el servidor.');
+      toast.error('Error de red al intentar conectar.');
     } finally {
       setCargando(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full border border-slate-100 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl border border-slate-100">
         
-        {/* --- PASO 1: PEDIR CORREO --- */}
-        {paso === 1 && (
-          <>
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-600">
-              <Lock size={32} />
-            </div>
-            <h2 className="text-2xl font-extrabold text-slate-800 text-center mb-2">Recuperar Acceso</h2>
-            <p className="text-slate-500 text-center text-sm mb-6">
-              Ingresa el correo de tu cuenta y te enviaremos un código de seguridad para crear una nueva contraseña.
-            </p>
+        <button 
+          onClick={() => paso === 2 ? setPaso(1) : navigate('/login')}
+          className="flex items-center gap-2 text-sm text-slate-500 hover:text-blue-600 font-medium transition-colors mb-6"
+        >
+          <ArrowLeft size={16} /> Volver
+        </button>
 
-            <form onSubmit={handlePedirCodigo} className="space-y-4">
+        <div className="mb-8">
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+            {paso === 1 ? 'Recuperar Cuenta' : 'Nueva Contraseña'}
+          </h2>
+          <p className="mt-2 text-sm text-slate-500 font-medium">
+            {paso === 1 
+              ? 'Ingresa tu correo y te enviaremos un código de seguridad.' 
+              : `Ingresa el código que enviamos a ${email}`}
+          </p>
+        </div>
+
+        {paso === 1 ? (
+          // ================= PASO 1: PEDIR CORREO =================
+          <form onSubmit={handleSolicitarCodigo} className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Correo Electrónico</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail size={20} className="text-slate-400" />
+                  <Mail size={18} className="text-slate-400" />
                 </div>
                 <input
                   type="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="tu@correo.com"
-                  required
+                  className="block w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all bg-slate-50 focus:bg-white"
+                  placeholder="ejemplo@mitienda.com"
                 />
               </div>
-
-              <button
-                type="submit"
-                disabled={cargando}
-                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all disabled:bg-blue-400"
-              >
-                {cargando ? 'Enviando...' : 'Enviar Código'}
-              </button>
-            </form>
-            <div className="mt-6 text-center">
-              <Link to="/login" className="text-sm text-blue-600 font-semibold hover:underline">
-                Volver al inicio de sesión
-              </Link>
             </div>
-          </>
-        )}
 
-        {/* --- PASO 2: INGRESAR CÓDIGO Y NUEVA CLAVE --- */}
-        {paso === 2 && (
-          <>
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600">
-              <KeyRound size={32} />
-            </div>
-            <h2 className="text-2xl font-extrabold text-slate-800 text-center mb-2">Crea tu nueva clave</h2>
-            <p className="text-slate-500 text-center text-sm mb-6">
-              Ingresa el código que enviamos a <strong>{email}</strong>
-            </p>
-
-            <form onSubmit={handleCambiarPassword} className="space-y-4">
-              {/* Input del Código */}
+            <button
+              type="submit"
+              disabled={cargando}
+              className="w-full flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-blue-600/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {cargando ? <Loader2 size={20} className="animate-spin" /> : <KeyRound size={20} />}
+              {cargando ? 'Enviando...' : 'Enviar Código'}
+            </button>
+          </form>
+        ) : (
+          // ================= PASO 2: CÓDIGO Y NUEVA CONTRASEÑA =================
+          <form onSubmit={handleResetPassword} className="space-y-5">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Código de 6 dígitos</label>
               <input
                 type="text"
+                required
                 maxLength="6"
                 value={codigo}
-                onChange={(e) => setCodigo(e.target.value.replace(/[^0-9]/g, ''))}
-                className="w-full py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono text-center text-2xl tracking-widest text-slate-800"
-                placeholder="••••••"
-                required
+                onChange={(e) => setCodigo(e.target.value)}
+                className="block w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 text-center tracking-[0.5em] text-lg font-bold text-slate-800 transition-all bg-slate-50 focus:bg-white"
+                placeholder="000000"
               />
+            </div>
 
-              {/* Input de Nueva Contraseña */}
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nueva Contraseña</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock size={20} className="text-slate-400" />
+                  <Lock size={18} className="text-slate-400" />
                 </div>
                 <input
-                  type="password"
+                  type={mostrarPassword ? 'text' : 'password'}
+                  required
                   value={nuevaPassword}
                   onChange={(e) => setNuevaPassword(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="Tu nueva contraseña"
+                  className="block w-full pl-11 pr-11 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 text-sm transition-all bg-slate-50 focus:bg-white"
+                  placeholder="Mínimo 8 caracteres"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarPassword(!mostrarPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600"
+                >
+                  {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Confirmar Contraseña</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock size={18} className="text-slate-400" />
+                </div>
+                <input
+                  type={mostrarPassword ? 'text' : 'password'}
                   required
+                  value={confirmarPassword}
+                  onChange={(e) => setConfirmarPassword(e.target.value)}
+                  className="block w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 text-sm transition-all bg-slate-50 focus:bg-white"
+                  placeholder="Repite la contraseña"
                 />
               </div>
+            </div>
 
-              <button
-                type="submit"
-                disabled={cargando || codigo.length !== 6 || nuevaPassword.length < 6}
-                className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all disabled:bg-blue-400 flex items-center justify-center gap-2"
-              >
-                {cargando ? 'Actualizando...' : 'Actualizar Contraseña'}
-                {!cargando && <ArrowRight size={18} />}
-              </button>
-            </form>
-          </>
+            <button
+              type="submit"
+              disabled={cargando}
+              className="w-full flex justify-center items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-slate-900/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-4"
+            >
+              {cargando ? <Loader2 size={20} className="animate-spin" /> : <Lock size={20} />}
+              {cargando ? 'Guardando...' : 'Restablecer Contraseña'}
+            </button>
+          </form>
         )}
-
       </div>
     </div>
   );
