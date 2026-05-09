@@ -60,6 +60,17 @@ export default function DashboardLayout({ children }) {
     { name: 'Planes Pro', icon: <Zap size={20} />, path: '/planes', isSpecial: true }
   ];
 
+  const correoAdmin = "alejandronavas228@gmail.com"; 
+
+  if (comercio?.email === correoAdmin) {
+    menuItems.push({ 
+      name: 'Panel Admin', 
+      icon: <ShieldCheck size={20} />, 
+      path: '/admin',
+      isSpecial: true 
+    });
+  }
+
   return (
     <div className="flex h-screen bg-[#F8FAFC] font-sans overflow-hidden">
       
