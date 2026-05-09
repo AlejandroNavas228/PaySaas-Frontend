@@ -47,10 +47,10 @@ export default function DashboardLayout({ children }) {
   const isActive = (path) => location.pathname === path;
 
   // 2. DEFINICIÓN DEL MENÚ CON LÓGICA DE BLOQUEO
-  const menuItems = [
-    { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
-    { name: 'Transacciones', icon: <Receipt size={20} />, path: '/transacciones' },
-    { name: 'Configuración', icon: <Settings size={20} />, path: '/configuracion' },
+ const menuItems = [
+  { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
+  { name: 'Transacciones', icon: <Receipt size={20} />, path: '/transacciones' },
+  { name: 'Configuración', icon: <Settings size={20} />, path: '/configuracion' },
     { 
       name: 'Desarrolladores', 
       icon: <Terminal size={20} />, 

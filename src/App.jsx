@@ -15,7 +15,8 @@ import Landing from './pages/Landing';
 import Configuracion from './pages/Configuracion';
 import Transacciones from './pages/Transacciones';
 import Documentacion from './pages/Desarrolladores/index';
-import Planes from './pages/Planes/index'; // 💡 FALTABA ESTA IMPORTACIÓN
+import Planes from './pages/Planes/index';
+import Admin from './pages/Admin/index';
 
 function App() {
   return (
@@ -67,6 +68,15 @@ function App() {
           element={
             <DashboardLayout>
               <Dashboard />
+            </DashboardLayout>
+          } 
+        />
+
+        <Route 
+          path="/admin" 
+          element={
+            <DashboardLayout>
+              <Admin />
             </DashboardLayout>
           } 
         />
