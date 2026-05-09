@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
   LayoutDashboard, Receipt, Settings, LogOut, ExternalLink, 
-  Bell, User, Terminal, Zap, Menu, X, Lock, Crown 
+  Bell, User, Terminal, Zap, Menu, X, Lock, Crown, ShieldCheck
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
