@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Lock, Loader2, Search, Filter } from 'lucide-react';
+import { FileText, Lock, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import TransactionsTable from '../../components/ui/TransactionsTable';
+import LoadingScreen from '../../components/ui/LoadingScreen';
 
 // 💡 1. EL GUARDIÁN DE LOS PLANES
 const tienePermiso = (planUsuario, planRequerido) => {
@@ -51,7 +52,8 @@ export default function Transacciones() {
       } catch (error) {
         toast.error('Error al cargar el historial de transacciones');
       } finally {
-        setCargando(false);
+        // Le damos medio segundo extra para apreciar la animación
+        setTimeout(() => setCargando(false), 500);
       }
     };
 
@@ -60,10 +62,8 @@ export default function Transacciones() {
 
   // 💡 3. LÓGICA DE FILTRADO (Se ejecuta en tiempo real)
   const transaccionesFiltradas = transacciones.filter(tx => {
-    // Filtrar por estado
     const coincideEstado = filtroEstado === 'todos' || tx.estado === filtroEstado;
     
-    // Filtrar por búsqueda (Referencia o Descripción)
     const textoBusqueda = busqueda.toLowerCase();
     const coincideBusqueda = 
       (tx.referenciaComercio && tx.referenciaComercio.toLowerCase().includes(textoBusqueda)) ||
@@ -83,14 +83,10 @@ export default function Transacciones() {
       return toast.error("No hay datos para exportar con estos filtros");
     }
 
-    // Cabeceras de la tabla
     const encabezados = ["ID Transaccion", "Fecha y Hora", "Producto", "Monto (USD)", "Metodo", "Estado", "Referencia"];
     
-    // Transformamos a filas usando PUNTO Y COMA (;) para Excel en español
     const filas = transaccionesFiltradas.map(tx => {
       const fechaLimpia = new Date(tx.fecha || tx.createdAt).toLocaleString();
-      
-      // Limpiamos la descripción de posibles comillas dobles que rompan el archivo
       const descLimpia = tx.descripcion ? tx.descripcion.replace(/"/g, '""') : 'General';
 
       return [
@@ -101,13 +97,11 @@ export default function Transacciones() {
         `"${tx.metodo}"`,
         `"${tx.estado}"`,
         `"${tx.referenciaComercio || tx.id.substring(0,8)}"`
-      ].join(";"); // 👈 El separador clave
+      ].join(";");
     });
 
-    // 💡 El "\uFEFF" es la magia (BOM) que le dice a Excel que respete los acentos y las ñ
     const contenidoCsv = "\uFEFF" + [encabezados.join(";"), ...filas].join("\n");
     
-    // Forzamos la descarga
     const blob = new Blob([contenidoCsv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -120,37 +114,31 @@ export default function Transacciones() {
     toast.success("¡Reporte descargado con éxito!");
   };
 
-  if (cargando) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-      </div>
-    );
-  }
+  if (cargando) return <LoadingScreen />;
 
   return (
-    <div className="max-w-6xl mx-auto pb-10">
+    <div className="max-w-6xl mx-auto pb-10 space-y-8">
       
       {/* ENCABEZADO */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 animate-in fade-in slide-in-from-left-4 duration-500">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Historial de Transacciones</h1>
-          <p className="text-slate-500 mt-1">Revisa y filtra todos los pagos de tu negocio.</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-1">Historial de Transacciones</h1>
+          <p className="text-slate-500 font-medium">Revisa y filtra todos los pagos de tu negocio.</p>
         </div>
 
         {/* BOTÓN DE EXCEL CONDICIONAL */}
         {tienePermiso(comercio?.plan_actual, 'pro') ? (
           <button 
             onClick={exportarAExcel} 
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md shadow-green-600/20"
+            className="flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white font-black py-4 px-8 rounded-2xl transition-all shadow-lg shadow-green-600/20 w-full md:w-auto"
           >
             <FileText size={20} /> Exportar Reporte
           </button>
         ) : (
-          <div className="group relative">
+          <div className="group relative w-full md:w-auto">
             <button 
               onClick={() => toast.error("Actualiza al Plan PRO para descargar reportes.")} 
-              className="flex items-center gap-2 bg-slate-200 text-slate-500 font-bold py-3 px-6 rounded-xl cursor-not-allowed transition-all"
+              className="flex items-center justify-center gap-3 w-full bg-slate-100 text-slate-400 font-black py-4 px-8 rounded-2xl cursor-not-allowed transition-all"
             >
               <Lock size={18} /> Exportar Reporte
             </button>
@@ -161,49 +149,53 @@ export default function Transacciones() {
         )}
       </div>
 
-      {/* 💡 BARRA DE FILTROS */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row gap-4">
+      {/* CONTENEDOR PRINCIPAL (Filtros + Tabla) */}
+      <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-8 duration-700">
         
-        {/* Buscador de Texto */}
-        <div className="flex-1 relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-slate-400" />
+        {/* BARRA DE FILTROS */}
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          
+          {/* Buscador de Texto */}
+          <div className="flex-1 relative">
+            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+              <Search size={20} className="text-slate-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar por referencia o producto..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-14 pr-5 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700"
+            />
           </div>
-          <input
-            type="text"
-            placeholder="Buscar por referencia o producto..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-colors text-sm"
+
+          {/* Selector de Estado */}
+          <div className="md:w-72 relative">
+            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+              <Filter size={20} className="text-slate-400" />
+            </div>
+            <select
+              value={filtroEstado}
+              onChange={(e) => setFiltroEstado(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-14 pr-10 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-bold text-slate-700 appearance-none cursor-pointer"
+            >
+              <option value="todos">Todos los estados</option>
+              <option value="aprobado">Aprobados</option>
+              <option value="en_revision">En Revisión / Pendientes</option>
+              <option value="rechazado">Rechazados</option>
+            </select>
+          </div>
+
+        </div>
+
+        {/* TABLA DE TRANSACCIONES */}
+        <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
+          <TransactionsTable 
+            transacciones={transaccionesFiltradas} 
+            setTransacciones={setTransacciones} 
           />
         </div>
 
-        {/* Selector de Estado */}
-        <div className="md:w-64 relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Filter size={18} className="text-slate-400" />
-          </div>
-          <select
-            value={filtroEstado}
-            onChange={(e) => setFiltroEstado(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500 transition-colors text-sm appearance-none bg-white cursor-pointer"
-          >
-            <option value="todos">Todos los estados</option>
-            <option value="aprobado">Aprobados</option>
-            <option value="en_revision">En Revisión / Pendientes</option>
-            <option value="rechazado">Rechazados</option>
-          </select>
-        </div>
-
-      </div>
-
-      {/* TABLA DE TRANSACCIONES */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        {/* Le pasamos los datos Y el poder de actualizar la lista completa */}
-        <TransactionsTable 
-          transacciones={transaccionesFiltradas} 
-          setTransacciones={setTransacciones} 
-        />
       </div>
     </div>
   );

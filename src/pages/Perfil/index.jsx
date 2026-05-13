@@ -1,223 +1,186 @@
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Save, Loader2, Mail } from 'lucide-react';
+import { User, Lock, Mail, Shield, Save, Loader2, eye, eyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import LoadingScreen from '../../components/ui/LoadingScreen';
 
 export default function Perfil() {
-  const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
-  
-  const [datosPerfil, setDatosPerfil] = useState({
-    nombre: '',
-    email: '', // El email será de solo lectura por ahora
-  });
+  const [comercio, setComercio] = useState(null);
 
-  const [seguridad, setSeguridad] = useState({
-    nuevaPassword: '',
-    confirmarPassword: ''
-  });
+  // Estados para el formulario
+  const [nombre, setNombre] = useState('');
+  const [nuevaPassword, setNuevaPassword] = useState('');
+  const [confirmarPassword, setConfirmarPassword] = useState('');
 
-  // 1. Cargar los datos actuales del usuario al entrar a la página
   useEffect(() => {
-    const cargarDatos = async () => {
-      const comercioId = localStorage.getItem('comercioId');
+    const cargarPerfil = async () => {
+      const id = localStorage.getItem('comercioId');
       const token = localStorage.getItem('token');
-
-      // Si no hay token o ID, lo mandamos al login
-      if (!comercioId || !token) {
-        navigate('/login');
-        return;
-      }
+      if (!id || !token) return;
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
         if (res.ok) {
           const data = await res.json();
-          setDatosPerfil({
-            nombre: data.nombre || '',
-            email: data.email || '',
-          });
-          setCargando(false);
-        } else {
-          // Si el token es inválido, cerramos sesión
-          localStorage.clear();
-          navigate('/login');
+          setComercio(data);
+          setNombre(data.nombre || '');
         }
       } catch (error) {
-        console.error("Error cargando perfil:", error);
         toast.error('Error al cargar los datos del perfil');
-        setCargando(false);
+      } finally {
+        setTimeout(() => setCargando(false), 500);
       }
     };
+    cargarPerfil();
+  }, []);
 
-    cargarDatos();
-  }, [navigate]);
-  
-  // 2. Manejar el envío del formulario
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const comercioId = localStorage.getItem('comercioId');
-    const token = localStorage.getItem('token');
-
-    // Validación de contraseñas si el usuario intentó cambiarla
-    if (seguridad.nuevaPassword) {
-      if (seguridad.nuevaPassword !== seguridad.confirmarPassword) {
-        return toast.error('Las contraseñas no coinciden.');
+  const actualizarPerfil = async () => {
+    // Validaciones básicas
+    if (!nombre.trim()) return toast.error('El nombre no puede estar vacío');
+    
+    if (nuevaPassword) {
+      if (nuevaPassword !== confirmarPassword) {
+        return toast.error('Las contraseñas no coinciden');
       }
-      if (seguridad.nuevaPassword.length < 8) {
-        return toast.error('La contraseña debe tener al menos 8 caracteres.');
+      if (nuevaPassword.length < 8) {
+        return toast.error('La contraseña debe tener al menos 8 caracteres');
       }
-    }
-
-    if (!datosPerfil.nombre.trim()) {
-      return toast.error('El nombre no puede estar vacío.');
     }
 
     setGuardando(true);
+    const id = localStorage.getItem('comercioId');
+    const token = localStorage.getItem('token');
 
     try {
-      // Preparamos el paquete de datos a enviar
-      const payload = { nombre: datosPerfil.nombre };
-      if (seguridad.nuevaPassword) {
-        payload.nuevaPassword = seguridad.nuevaPassword;
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}/perfil`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${id}/perfil`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          nombre,
+          ...(nuevaPassword && { nuevaPassword }) // Solo enviamos la contraseña si el usuario escribió una
+        })
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
+      if (res.ok) {
         toast.success('¡Perfil actualizado con éxito!');
-        
-        // Actualizamos el nombre en el localStorage para que el menú lateral cambie
-        const comercioActual = JSON.parse(localStorage.getItem('comercio'));
-        comercioActual.nombre = data.comercio.nombre;
-        localStorage.setItem('comercio', JSON.stringify(comercioActual));
-
-        // Limpiamos los campos de contraseña
-        setSeguridad({ nuevaPassword: '', confirmarPassword: '' });
+        setNuevaPassword('');
+        setConfirmarPassword('');
       } else {
-        toast.error(data.error || 'Error al actualizar el perfil.');
+        const data = await res.json();
+        toast.error(data.error || 'Error al actualizar');
       }
     } catch (error) {
-      console.error("Error de red:", error);
-      toast.error('Error de conexión con el servidor.');
+      toast.error('Error de conexión');
     } finally {
       setGuardando(false);
     }
   };
 
-  if (cargando) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-      </div>
-    );
-  }
+  if (cargando) return <LoadingScreen />;
 
   return (
-    <div className="max-w-3xl mx-auto pb-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Mi Perfil</h1>
-        <p className="text-slate-500 mt-1">Gestiona tu información personal y la seguridad de tu cuenta.</p>
+    <div className="max-w-4xl mx-auto pb-10 space-y-8">
+      
+      {/* CABECERA DINÁMICA */}
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="flex items-center gap-6 text-center sm:text-left flex-col sm:flex-row">
+          <div className="w-24 h-24 bg-blue-600 rounded-[2rem] shadow-xl shadow-blue-600/30 flex items-center justify-center text-white text-3xl font-black border-4 border-white">
+            {nombre.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">{nombre}</h1>
+            <p className="text-slate-500 font-medium">{comercio?.email}</p>
+            <div className="mt-2 inline-flex items-center gap-1.5 bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border border-blue-100">
+              <Shield size={12} /> Plan {comercio?.plan_actual}
+            </div>
+          </div>
+        </div>
+        <button 
+          onClick={actualizarPerfil}
+          disabled={guardando}
+          className="bg-slate-900 hover:bg-slate-800 text-white font-black py-4 px-10 rounded-2xl transition-all shadow-lg flex items-center gap-2 disabled:opacity-70"
+        >
+          {guardando ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+          {guardando ? 'Guardando...' : 'Actualizar Perfil'}
+        </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
         
-        {/* SECCIÓN: INFORMACIÓN BÁSICA */}
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <User className="text-blue-600" size={20} />
-            Información General
-          </h2>
+        {/* INFORMACIÓN DE LA CUENTA */}
+        <div className="bg-white p-8 md:p-10 rounded-[2rem] shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-3 bg-slate-100 text-slate-600 rounded-2xl"><User size={24} /></div>
+            <h2 className="text-xl font-black text-slate-800">Datos Personales</h2>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nombre del Comercio / Propietario</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Nombre Completo o Negocio</label>
               <input 
                 type="text" 
-                value={datosPerfil.nombre}
-                onChange={(e) => setDatosPerfil({...datosPerfil, nombre: e.target.value})}
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm font-medium text-slate-800"
-                placeholder="Ej: Tienda de Zapatos CA"
+                value={nombre} 
+                onChange={(e) => setNombre(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700" 
               />
             </div>
-
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Correo Electrónico</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Correo Electrónico (No editable)</label>
               <div className="relative">
+                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400"><Mail size={18} /></div>
                 <input 
                   type="email" 
-                  value={datosPerfil.email}
-                  readOnly
-                  disabled
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm font-medium text-slate-500 cursor-not-allowed"
+                  value={comercio?.email} 
+                  disabled 
+                  className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-14 py-4 text-sm font-medium text-slate-400 cursor-not-allowed" 
                 />
-                <Mail className="absolute left-3 top-3.5 text-slate-400" size={16} />
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">* Por seguridad, el correo no se puede cambiar.</p>
             </div>
           </div>
         </div>
 
-        {/* SECCIÓN: SEGURIDAD Y CONTRASEÑA */}
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Lock className="text-amber-500" size={20} />
-            Seguridad (Opcional)
-          </h2>
-          
-          <p className="text-sm text-slate-500 mb-6">Solo llena estos campos si deseas cambiar tu contraseña actual.</p>
+        {/* SEGURIDAD */}
+        <div className="bg-white p-8 md:p-10 rounded-[2rem] shadow-sm border border-slate-200">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-3 bg-red-50 text-red-600 rounded-2xl"><Lock size={24} /></div>
+            <h2 className="text-xl font-black text-slate-800">Seguridad</h2>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Nueva Contraseña</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Nueva Contraseña</label>
               <input 
                 type="password" 
-                value={seguridad.nuevaPassword}
-                onChange={(e) => setSeguridad({...seguridad, nuevaPassword: e.target.value})}
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-amber-500 transition-all text-sm"
                 placeholder="Mínimo 8 caracteres"
+                value={nuevaPassword}
+                onChange={(e) => setNuevaPassword(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700" 
               />
             </div>
-
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Confirmar Nueva Contraseña</label>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Confirmar Contraseña</label>
               <input 
                 type="password" 
-                value={seguridad.confirmarPassword}
-                onChange={(e) => setSeguridad({...seguridad, confirmarPassword: e.target.value})}
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-amber-500 transition-all text-sm"
-                placeholder="Repite tu nueva contraseña"
+                placeholder="Repite la contraseña"
+                value={confirmarPassword}
+                onChange={(e) => setConfirmarPassword(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700" 
               />
             </div>
           </div>
+          <p className="mt-6 text-xs text-slate-400 font-medium flex items-center gap-2">
+            <Shield size={14} className="text-blue-500" /> 
+            Lumina Pay utiliza encriptación de grado bancario para proteger tus credenciales.
+          </p>
         </div>
 
-        {/* BOTÓN DE GUARDAR */}
-        <div className="flex justify-end pt-4">
-          <button 
-            type="submit" 
-            disabled={guardando}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {guardando ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-            {guardando ? 'Guardando Cambios...' : 'Guardar Perfil'}
-          </button>
-        </div>
-
-      </form>
+      </div>
     </div>
   );
 }

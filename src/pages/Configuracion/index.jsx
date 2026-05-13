@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Smartphone, CreditCard, Mail, Wallet, Loader2, MessageCircle } from 'lucide-react';
+import { Save, Smartphone, DollarSign, Wallet, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import LoadingScreen from '../../components/ui/LoadingScreen';
 
 export default function Configuracion() {
-  const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   
-  // Estado inicial de la configuración
   const [config, setConfig] = useState({
-    pago_movil_banco: '',
     pago_movil_cedula: '',
+    pago_movil_banco: '',
     pago_movil_tel: '',
     zelle_email: '',
     zinli_email: '',
@@ -19,28 +17,21 @@ export default function Configuracion() {
     wallet_usdt: ''
   });
 
-  // 1. Cargar la configuración actual desde el backend
   useEffect(() => {
-    const cargarDatos = async () => {
+    const cargarConfiguracion = async () => {
       const comercioId = localStorage.getItem('comercioId');
       const token = localStorage.getItem('token');
-
-      if (!comercioId || !token) {
-        navigate('/login');
-        return;
-      }
+      if (!comercioId || !token) return;
 
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-
         if (res.ok) {
           const data = await res.json();
-          // Llenamos el estado con los datos que vengan de la BD (si son null, ponemos string vacío)
           setConfig({
-            pago_movil_banco: data.pago_movil_banco || '',
             pago_movil_cedula: data.pago_movil_cedula || '',
+            pago_movil_banco: data.pago_movil_banco || '',
             pago_movil_tel: data.pago_movil_tel || '',
             zelle_email: data.zelle_email || '',
             zinli_email: data.zinli_email || '',
@@ -51,18 +42,18 @@ export default function Configuracion() {
       } catch (error) {
         toast.error('Error al cargar la configuración');
       } finally {
-        setCargando(false);
+        setTimeout(() => setCargando(false), 500);
       }
     };
+    cargarConfiguracion();
+  }, []);
 
-    cargarDatos();
-  }, [navigate]);
+  const handleChange = (e) => {
+    setConfig({ ...config, [e.target.name]: e.target.value });
+  };
 
-  // 2. Guardar los cambios
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const guardarConfiguracion = async () => {
     setGuardando(true);
-    
     const comercioId = localStorage.getItem('comercioId');
     const token = localStorage.getItem('token');
 
@@ -73,157 +64,120 @@ export default function Configuracion() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        // Enviamos todo el objeto config al backend
         body: JSON.stringify(config)
       });
 
       if (res.ok) {
-        toast.success('¡Métodos de pago actualizados!');
+        toast.success('¡Configuración guardada con éxito!');
       } else {
-        toast.error('Error al guardar la configuración');
+        toast.error('Error al guardar los datos');
       }
     } catch (error) {
-      toast.error('Error de red al guardar');
+      toast.error('Error de red al intentar guardar');
     } finally {
       setGuardando(false);
     }
   };
 
-  const handleChange = (e) => {
-    setConfig({ ...config, [e.target.name]: e.target.value });
-  };
-
-  if (cargando) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-      </div>
-    );
-  }
+  if (cargando) return <LoadingScreen />;
 
   return (
-    <div className="max-w-4xl mx-auto pb-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-800">Métodos de Pago</h1>
-        <p className="text-slate-500 mt-1">Configura las cuentas donde recibirás el dinero de tus clientes.</p>
+    <div className="max-w-4xl mx-auto pb-10 space-y-8">
+      
+      <div className="animate-in fade-in slide-in-from-left-4 duration-500 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-1">Métodos de Cobro</h1>
+          <p className="text-slate-500 font-medium">Configura dónde recibirás el dinero de tus ventas.</p>
+        </div>
+        <button 
+          onClick={guardarConfiguracion}
+          disabled={guardando}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 px-8 rounded-2xl transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 disabled:opacity-70 w-full sm:w-auto justify-center"
+        >
+          {guardando ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+          {guardando ? 'Guardando...' : 'Guardar Cambios'}
+        </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
         
-        {/* PAGO MÓVIL Y WHATSAPP */}
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 mb-6">
-            <Smartphone className="text-green-600" size={24} />
-            <h2 className="text-lg font-bold text-slate-800">Pago Móvil (Bolívares)</h2>
+        {/* PAGO MÓVIL */}
+        <div className="bg-white p-8 md:p-10 rounded-[2rem] shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+          
+          <div className="flex items-center gap-3 mb-8 relative z-10">
+            <div className="p-3 bg-green-50 text-green-600 rounded-2xl"><Smartphone size={24} /></div>
+            <div>
+              <h2 className="text-xl font-black text-slate-800">Pago Móvil (Venezuela)</h2>
+              <p className="text-sm text-slate-500 font-medium">Datos para transferencias en bolívares.</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Banco</label>
-              <input 
-                type="text" name="pago_movil_banco" value={config.pago_movil_banco} onChange={handleChange}
-                placeholder="Ej: Banesco, Mercantil..."
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm"
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Cédula / RIF</label>
-              <input 
-                type="text" name="pago_movil_cedula" value={config.pago_movil_cedula} onChange={handleChange}
-                placeholder="Ej: V-12345678"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm"
-              />
+              <input type="text" name="pago_movil_cedula" value={config.pago_movil_cedula} onChange={handleChange} placeholder="V-12345678" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700" />
             </div>
             <div>
-              {/* 💡 AQUÍ LE DECIMOS AL USUARIO QUE ESTE NÚMERO TAMBIÉN ES PARA WHATSAPP */}
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
-                Teléfono <MessageCircle size={12} className="text-[#25D366]"/> (Pago Móvil y Notificaciones)
-              </label>
-              <input 
-                type="text" name="pago_movil_tel" value={config.pago_movil_tel} onChange={handleChange}
-                placeholder="Ej: 04141234567"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm"
-              />
-              <p className="text-[10px] text-slate-400 mt-1">A este número los clientes enviarán el reporte por WhatsApp.</p>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Banco</label>
+              <input type="text" name="pago_movil_banco" value={config.pago_movil_banco} onChange={handleChange} placeholder="Ej: Mercantil" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Teléfono</label>
+              <input type="text" name="pago_movil_tel" value={config.pago_movil_tel} onChange={handleChange} placeholder="0414-1234567" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700" />
             </div>
           </div>
         </div>
 
-        {/* ZELLE Y ZINLI */}
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 mb-6">
-            <Mail className="text-purple-600" size={24} />
-            <h2 className="text-lg font-bold text-slate-800">Transferencias Directas (USD)</h2>
+        {/* DÓLARES DIGITALES */}
+        <div className="bg-white p-8 md:p-10 rounded-[2rem] shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+          
+          <div className="flex items-center gap-3 mb-8 relative z-10">
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl"><DollarSign size={24} /></div>
+            <div>
+              <h2 className="text-xl font-black text-slate-800">Dólares Digitales</h2>
+              <p className="text-sm text-slate-500 font-medium">Correos asociados a tus billeteras.</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Correo Zelle</label>
-              <input 
-                type="email" name="zelle_email" value={config.zelle_email} onChange={handleChange}
-                placeholder="tu@correo.com"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm"
-              />
+              <input type="email" name="zelle_email" value={config.zelle_email} onChange={handleChange} placeholder="tu_zelle@email.com" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Correo Zinli</label>
-              <input 
-                type="email" name="zinli_email" value={config.zinli_email} onChange={handleChange}
-                placeholder="tu@correo.com"
-                className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm"
-              />
+              <input type="email" name="zinli_email" value={config.zinli_email} onChange={handleChange} placeholder="tu_zinli@email.com" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700" />
             </div>
           </div>
         </div>
 
-        {/* CRIPTO WEB3 */}
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 mb-6">
-            <Wallet className="text-amber-500" size={24} />
-            <h2 className="text-lg font-bold text-slate-800">Criptomonedas (Web3)</h2>
+        {/* CRIPTO E INTERNACIONAL */}
+        <div className="bg-white p-8 md:p-10 rounded-[2rem] shadow-sm border border-slate-200 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+          
+          <div className="flex items-center gap-3 mb-8 relative z-10">
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Wallet size={24} /></div>
+            <div>
+              <h2 className="text-xl font-black text-slate-800">Internacional y Cripto</h2>
+              <p className="text-sm text-slate-500 font-medium">Recibe pagos globales a través de PayPal o USDT.</p>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Wallet USDT (Red BSC - BEP20)</label>
-            <input 
-              type="text" name="wallet_usdt" value={config.wallet_usdt} onChange={handleChange}
-              placeholder="0x..."
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm font-mono"
-            />
-          </div>
-        </div>
-
-        {/* PAYPAL */}
-        <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 mb-6">
-            <CreditCard className="text-blue-600" size={24} />
-            <h2 className="text-lg font-bold text-slate-800">Pasarelas Internacionales</h2>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">PayPal Client ID</label>
-            <input 
-              type="text" name="paypal_client_id" value={config.paypal_client_id} onChange={handleChange}
-              placeholder="Pega aquí tu Client ID de la consola de desarrollador de PayPal"
-              className="w-full border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 transition-all text-sm font-mono"
-            />
-            <p className="text-[10px] text-slate-400 mt-1">Requerido para activar el botón de pago automático con PayPal.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Billetera USDT (TRC20)</label>
+              <input type="text" name="wallet_usdt" value={config.wallet_usdt} onChange={handleChange} placeholder="TXXXXXXXXXXXXXXXXXXXXXXXXXXXX" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700 font-mono" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">PayPal Client ID</label>
+              <input type="text" name="paypal_client_id" value={config.paypal_client_id} onChange={handleChange} placeholder="Client ID de PayPal Developer" className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium text-slate-700 font-mono" />
+            </div>
           </div>
         </div>
 
-        {/* BOTÓN DE GUARDAR */}
-        <div className="flex justify-end sticky bottom-6">
-          <button 
-            type="submit" 
-            disabled={guardando}
-            className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-10 rounded-xl transition-all shadow-xl shadow-slate-900/20 flex items-center gap-2 disabled:opacity-70"
-          >
-            {guardando ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-            {guardando ? 'Guardando...' : 'Guardar Configuración'}
-          </button>
-        </div>
-
-      </form>
+      </div>
     </div>
   );
 }
