@@ -72,50 +72,35 @@ export default function Desarrolladores() {
     }
   };
 
-  // 💡 NUEVA FUNCIÓN: Probar conexión con el servidor del cliente
+  // 💡 FUNCIÓN ACTUALIZADA: Le pedimos al backend que haga la prueba por nosotros
   const probarWebhook = async () => {
-    if (!webhook) {
-      return toast.error('Ingresa una URL antes de probar');
-    }
-    
-    // Validar formato de URL rápido
-    if (!webhook.startsWith('http')) {
-      return toast.error('La URL debe empezar con http:// o https://');
+    if (!webhook || !webhook.startsWith('http')) {
+      return toast.error('Ingresa una URL válida que empiece con http:// o https://');
     }
 
     setProbando(true);
-    
-    // Simulamos los datos exactos que enviará Lumina cuando un pago sea aprobado
-    const datosDePrueba = {
-      evento: 'pago_exitoso',
-      data: {
-        id: `test_${Math.floor(Math.random() * 10000)}`,
-        monto: 25.50,
-        moneda: 'USD',
-        estado: 'aprobado',
-        referenciaComercio: 'TEST-WEBHOOK-001',
-        descripcion: 'Transacción de prueba de conexión',
-        fecha: new Date().toISOString()
-      }
-    };
+    const token = localStorage.getItem('token');
+    const comercioId = localStorage.getItem('comercioId');
 
     try {
-      const response = await fetch(webhook, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}/probar-webhook`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}` // Usamos la misma API Key para que prueben seguridad
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(datosDePrueba)
+        body: JSON.stringify({ webhookUrl: webhook })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        toast.success('¡Conexión Exitosa! El servidor respondió correctamente.', { duration: 4000 });
+        toast.success('¡Conexión Exitosa! El servidor recibió los datos.', { duration: 4000 });
       } else {
-        toast.error(`El servidor recibió los datos pero devolvió error: ${response.status}`);
+        toast.error(data.error || 'Error de conexión con el servidor destino.');
       }
     } catch (error) {
-      toast.error('Fallo de conexión. Revisa que la URL exista y permita peticiones externas (CORS).', { duration: 5000 });
+      toast.error('Error interno de Lumina al intentar hacer la prueba.');
     } finally {
       setProbando(false);
     }
@@ -132,7 +117,6 @@ export default function Desarrolladores() {
     }
   };
 
-  // Ya tenías esto dinámico con ${apiKey}, ¡excelente práctica!
   const codigoEjemplo = `const url = '${import.meta.env.VITE_API_URL || 'https://lumina-backend.onrender.com'}/api/checkout';
 const options = {
   method: "POST",
