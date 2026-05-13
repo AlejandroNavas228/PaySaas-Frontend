@@ -3,6 +3,9 @@ import { Save, Smartphone, DollarSign, Wallet, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LoadingScreen from '../../components/ui/LoadingScreen';
 
+// 💡 IMPORTAMOS EL SERVICIO
+import { api } from '../../services/api';
+
 export default function Configuracion() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -20,27 +23,22 @@ export default function Configuracion() {
   useEffect(() => {
     const cargarConfiguracion = async () => {
       const comercioId = localStorage.getItem('comercioId');
-      const token = localStorage.getItem('token');
-      if (!comercioId || !token) return;
+      if (!comercioId) return;
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        // 💡 LLAMADA LIMPIA
+        const data = await api.obtenerComercio(comercioId);
+        setConfig({
+          pago_movil_cedula: data.pago_movil_cedula || '',
+          pago_movil_banco: data.pago_movil_banco || '',
+          pago_movil_tel: data.pago_movil_tel || '',
+          zelle_email: data.zelle_email || '',
+          zinli_email: data.zinli_email || '',
+          paypal_client_id: data.paypal_client_id || '',
+          wallet_usdt: data.wallet_usdt || ''
         });
-        if (res.ok) {
-          const data = await res.json();
-          setConfig({
-            pago_movil_cedula: data.pago_movil_cedula || '',
-            pago_movil_banco: data.pago_movil_banco || '',
-            pago_movil_tel: data.pago_movil_tel || '',
-            zelle_email: data.zelle_email || '',
-            zinli_email: data.zinli_email || '',
-            paypal_client_id: data.paypal_client_id || '',
-            wallet_usdt: data.wallet_usdt || ''
-          });
-        }
       } catch (error) {
-        toast.error('Error al cargar la configuración');
+        toast.error(error.message || 'Error al cargar la configuración');
       } finally {
         setTimeout(() => setCargando(false), 500);
       }
@@ -55,25 +53,13 @@ export default function Configuracion() {
   const guardarConfiguracion = async () => {
     setGuardando(true);
     const comercioId = localStorage.getItem('comercioId');
-    const token = localStorage.getItem('token');
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}/config`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(config)
-      });
-
-      if (res.ok) {
-        toast.success('¡Configuración guardada con éxito!');
-      } else {
-        toast.error('Error al guardar los datos');
-      }
+      // 💡 GUARDADO LIMPIO
+      await api.actualizarConfiguracion(comercioId, config);
+      toast.success('¡Configuración guardada con éxito!');
     } catch (error) {
-      toast.error('Error de red al intentar guardar');
+      toast.error(error.message || 'Error al guardar los datos');
     } finally {
       setGuardando(false);
     }
@@ -83,7 +69,7 @@ export default function Configuracion() {
 
   return (
     <div className="max-w-4xl mx-auto pb-10 space-y-8">
-      
+      {/* ... (El resto del diseño HTML se mantiene igual de impecable) ... */}
       <div className="animate-in fade-in slide-in-from-left-4 duration-500 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-1">Métodos de Cobro</h1>

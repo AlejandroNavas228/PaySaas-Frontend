@@ -5,6 +5,9 @@ import toast from 'react-hot-toast';
 import TransactionsTable from '../../components/ui/TransactionsTable';
 import LoadingScreen from '../../components/ui/LoadingScreen';
 
+// 💡 IMPORTAMOS NUESTRO CEREBRO (SERVICIO API)
+import { api } from '../../services/api';
+
 // 💡 1. EL GUARDIÁN DE LOS PLANES
 const tienePermiso = (planUsuario, planRequerido) => {
   const niveles = { 'starter': 0, 'pro': 1, 'business': 2 };
@@ -18,41 +21,32 @@ export default function Transacciones() {
   const [transacciones, setTransacciones] = useState([]);
   const [comercio, setComercio] = useState(null);
 
-  // 💡 ESTADOS PARA LOS FILTROS
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
 
-  // 2. CARGAMOS TODOS LOS DATOS
+  // 2. CARGA DE DATOS OPTIMIZADA CON EL SERVICIO API
   useEffect(() => {
     const cargarDatos = async () => {
       const comercioId = localStorage.getItem('comercioId');
-      const token = localStorage.getItem('token');
 
-      if (!comercioId || !token) {
+      if (!comercioId) {
         navigate('/login');
         return;
       }
 
       try {
-        const [resPagos, resComercio] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${comercioId}`, { 
-            headers: { 'Authorization': `Bearer ${token}` } 
-          }),
-          fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, { 
-            headers: { 'Authorization': `Bearer ${token}` } 
-          })
+        // 💡 MAGIA: Promise.all ejecutando nuestras funciones abstractas
+        const [dataPagos, dataComercio] = await Promise.all([
+          api.obtenerTransacciones(comercioId),
+          api.obtenerComercio(comercioId)
         ]);
         
-        if (resPagos.ok && resComercio.ok) {
-          const dataPagos = await resPagos.json();
-          const dataComercio = await resComercio.json();
-          setTransacciones(dataPagos); 
-          setComercio(dataComercio);
-        }
+        setTransacciones(dataPagos); 
+        setComercio(dataComercio);
+        
       } catch (error) {
-        toast.error('Error al cargar el historial de transacciones');
+        toast.error(error.message || 'Error al cargar el historial de transacciones');
       } finally {
-        // Le damos medio segundo extra para apreciar la animación
         setTimeout(() => setCargando(false), 500);
       }
     };
@@ -60,7 +54,7 @@ export default function Transacciones() {
     cargarDatos();
   }, [navigate]);
 
-  // 💡 3. LÓGICA DE FILTRADO (Se ejecuta en tiempo real)
+  // 3. LÓGICA DE FILTRADO (Se ejecuta en tiempo real)
   const transaccionesFiltradas = transacciones.filter(tx => {
     const coincideEstado = filtroEstado === 'todos' || tx.estado === filtroEstado;
     
@@ -73,7 +67,7 @@ export default function Transacciones() {
     return coincideEstado && coincideBusqueda;
   });
 
-  // 4. EXCEL PERFECTO (Para Excel en Español)
+  // 4. EXCEL PERFECTO (Intacto)
   const exportarAExcel = () => {
     if (!tienePermiso(comercio?.plan_actual, 'pro')) {
       return toast.error("Función exclusiva de los planes PRO y BUSINESS");
@@ -149,7 +143,7 @@ export default function Transacciones() {
         )}
       </div>
 
-      {/* CONTENEDOR PRINCIPAL (Filtros + Tabla) */}
+      {/* CONTENEDOR PRINCIPAL */}
       <div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-8 duration-700">
         
         {/* BARRA DE FILTROS */}

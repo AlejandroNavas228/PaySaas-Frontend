@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Mail, Shield, Save, Loader2, eye, eyeOff } from 'lucide-react';
+import { User, Lock, Mail, Shield, Save, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LoadingScreen from '../../components/ui/LoadingScreen';
+
+// 💡 IMPORTAMOS EL SERVICIO
+import { api } from '../../services/api';
 
 export default function Perfil() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [comercio, setComercio] = useState(null);
 
-  // Estados para el formulario
   const [nombre, setNombre] = useState('');
   const [nuevaPassword, setNuevaPassword] = useState('');
   const [confirmarPassword, setConfirmarPassword] = useState('');
@@ -16,20 +18,14 @@ export default function Perfil() {
   useEffect(() => {
     const cargarPerfil = async () => {
       const id = localStorage.getItem('comercioId');
-      const token = localStorage.getItem('token');
-      if (!id || !token) return;
+      if (!id) return;
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setComercio(data);
-          setNombre(data.nombre || '');
-        }
+        const data = await api.obtenerComercio(id);
+        setComercio(data);
+        setNombre(data.nombre || '');
       } catch (error) {
-        toast.error('Error al cargar los datos del perfil');
+        toast.error(error.message || 'Error al cargar los datos del perfil');
       } finally {
         setTimeout(() => setCargando(false), 500);
       }
@@ -38,7 +34,6 @@ export default function Perfil() {
   }, []);
 
   const actualizarPerfil = async () => {
-    // Validaciones básicas
     if (!nombre.trim()) return toast.error('El nombre no puede estar vacío');
     
     if (nuevaPassword) {
@@ -52,31 +47,19 @@ export default function Perfil() {
 
     setGuardando(true);
     const id = localStorage.getItem('comercioId');
-    const token = localStorage.getItem('token');
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${id}/perfil`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          nombre,
-          ...(nuevaPassword && { nuevaPassword }) // Solo enviamos la contraseña si el usuario escribió una
-        })
+      // 💡 LLAMADA AL SERVICIO
+      await api.actualizarPerfil(id, {
+        nombre,
+        ...(nuevaPassword && { nuevaPassword })
       });
 
-      if (res.ok) {
-        toast.success('¡Perfil actualizado con éxito!');
-        setNuevaPassword('');
-        setConfirmarPassword('');
-      } else {
-        const data = await res.json();
-        toast.error(data.error || 'Error al actualizar');
-      }
+      toast.success('¡Perfil actualizado con éxito!');
+      setNuevaPassword('');
+      setConfirmarPassword('');
     } catch (error) {
-      toast.error('Error de conexión');
+      toast.error(error.message || 'Error al actualizar');
     } finally {
       setGuardando(false);
     }
@@ -86,8 +69,7 @@ export default function Perfil() {
 
   return (
     <div className="max-w-4xl mx-auto pb-10 space-y-8">
-      
-      {/* CABECERA DINÁMICA */}
+      {/* ... (El diseño HTML de tarjetas y cabecera se mantiene igual) ... */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="flex items-center gap-6 text-center sm:text-left flex-col sm:flex-row">
           <div className="w-24 h-24 bg-blue-600 rounded-[2rem] shadow-xl shadow-blue-600/30 flex items-center justify-center text-white text-3xl font-black border-4 border-white">
@@ -175,7 +157,7 @@ export default function Perfil() {
             </div>
           </div>
           <p className="mt-6 text-xs text-slate-400 font-medium flex items-center gap-2">
-            <Shield size={14} className="text-blue-500" /> 
+            <Lock size={14} className="text-blue-500" /> 
             Lumina Pay utiliza encriptación de grado bancario para proteger tus credenciales.
           </p>
         </div>

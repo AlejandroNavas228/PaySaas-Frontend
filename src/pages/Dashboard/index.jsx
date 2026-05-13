@@ -5,7 +5,9 @@ import toast from 'react-hot-toast';
 import LoadingScreen from '../../components/ui/LoadingScreen';
 import TransactionsTable from '../../components/ui/TransactionsTable';
 
-// 💡 1. EL GUARDIÁN DE LOS PLANES
+// 💡 IMPORTAMOS NUESTRO NUEVO CEREBRO
+import { api } from '../../services/api';
+
 const tienePermiso = (planUsuario, planRequerido) => {
   const niveles = { 'starter': 0, 'pro': 1, 'business': 2 };
   const nivelActual = niveles[planUsuario] || 0; 
@@ -78,70 +80,45 @@ export default function Dashboard() {
   const [linkGenerado, setLinkGenerado] = useState('');
   const [generandoLink, setGenerandoLink] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) { navigate('/login'); return; }
-
-    const cerrarSesionPorExpiracion = () => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('comercio');
-      localStorage.removeItem('comercioId');
-      toast('Tu sesión ha expirado por seguridad. Vuelve a iniciar.', { icon: '⏱️', duration: 5000 });
-      navigate('/login');
-    };
-
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const payload = JSON.parse(window.atob(base64));
-      const tiempoRestante = (payload.exp * 1000) - Date.now();
-      if (tiempoRestante <= 0) cerrarSesionPorExpiracion();
-      else {
-        const temporizador = setTimeout(cerrarSesionPorExpiracion, tiempoRestante);
-        return () => clearTimeout(temporizador);
-      }
-    } catch (error) { cerrarSesionPorExpiracion(); }
-  }, [navigate]);
-
+  // 1. CARGA DE DATOS OPTIMIZADA CON EL SERVICIO API
   useEffect(() => {
     const cargarDatos = async () => {
       const comercioId = localStorage.getItem('comercioId');
-      const token = localStorage.getItem('token');
-      if (!comercioId || !token) return;
+      if (!comercioId) return navigate('/login');
 
       try {
-        const [resPagos, resComercio] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL}/api/pagos/${comercioId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${import.meta.env.VITE_API_URL}/api/comercio/${comercioId}`, { headers: { 'Authorization': `Bearer ${token}` } })
+        // 💡 MAGIA: Promise.all súper limpio sin tener que escribir 'fetch' ni 'headers'
+        const [dataPagos, dataComercio] = await Promise.all([
+          api.obtenerTransacciones(comercioId),
+          api.obtenerComercio(comercioId)
         ]);
         
-        if (resPagos.ok && resComercio.ok) {
-          const dataPagos = await resPagos.json();
-          const dataComercio = await resComercio.json();
-          setTransacciones(dataPagos); 
-          setComercio(dataComercio);
-          
-          let ingresosTotales = 0; let pagosPendientes = 0;
-          dataPagos.forEach(tx => {
-            if (tx.estado === 'aprobado') ingresosTotales += parseFloat(tx.monto);
-            if (tx.estado === 'en_revision' || tx.estado === 'pendiente') pagosPendientes++;
-          });
+        setTransacciones(dataPagos); 
+        setComercio(dataComercio);
+        
+        let ingresosTotales = 0; let pagosPendientes = 0;
+        dataPagos.forEach(tx => {
+          if (tx.estado === 'aprobado') ingresosTotales += parseFloat(tx.monto);
+          if (tx.estado === 'en_revision' || tx.estado === 'pendiente') pagosPendientes++;
+        });
 
-          setMetricas({
-            ingresos: ingresosTotales.toFixed(2),
-            pendientes: pagosPendientes,
-            totalVentas: dataPagos.filter(tx => tx.estado === 'aprobado').length
-          });
-        }
+        setMetricas({
+          ingresos: ingresosTotales.toFixed(2),
+          pendientes: pagosPendientes,
+          totalVentas: dataPagos.filter(tx => tx.estado === 'aprobado').length
+        });
+        
       } catch (error) {
-        toast.error('Error al sincronizar con el servidor');
+        toast.error(error.message || 'Error al sincronizar con el servidor');
       } finally {
         setTimeout(() => setCargando(false), 600);
       }
     };
+    
     cargarDatos();
   }, [navigate]);
 
+  // 2. GENERACIÓN DE LINKS OPTIMIZADA
   const generarLinkRapido = async () => {
     if (!linkMonto || !linkConcepto) return toast.error('Llena el monto y el concepto');
     if (!comercio?.api_key) return toast.error('Cargando credenciales de seguridad... intenta de nuevo.');
@@ -159,25 +136,15 @@ export default function Dashboard() {
         payload.urlExito = linkUrlExito;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/checkout`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-api-key': comercio.api_key 
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setLinkGenerado(data.url_pago);
-        toast.success('¡Link generado con éxito!');
-        setLinkUrlExito(''); 
-      } else {
-        toast.error(data.error || 'Error al generar el link');
-      }
+      // 💡 MAGIA: Pasamos la api_key y el payload, la API hace el resto
+      const data = await api.generarLink(comercio.api_key, payload);
+      
+      setLinkGenerado(data.url_pago);
+      toast.success('¡Link generado con éxito!');
+      setLinkUrlExito(''); 
+      
     } catch (error) {
-      toast.error('Error de red');
+      toast.error(error.message || 'Error al generar el link');
     } finally {
       setGenerandoLink(false);
     }
